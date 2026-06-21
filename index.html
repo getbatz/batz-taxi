@@ -580,12 +580,11 @@
 
         map.on('movestart', () => { if(isOrderProcessing) return; document.getElementById('map-interactive-pin').classList.add('dragging'); });
         map.on('moveend', () => {
-            if(isOrderProcessing) return;
+            if(isOrderProcessing || isAutoPanning) return; // Если карта двигается программно из подсказок — не сбрасываем адрес!
             document.getElementById('map-interactive-pin').classList.remove('dragging');
             const c = map.getCenter();
             resolveCoordinatesToAddress(c.lat, c.lng);
         });
-
         function changeSystemLanguage(lng) {
             currentLocale = lng;
             localStorage.setItem('batz_lang', lng);
