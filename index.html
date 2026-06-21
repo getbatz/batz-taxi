@@ -84,7 +84,7 @@
         const tg = window.Telegram.WebApp;
         // Подключаемся к серверу. 
 // Пока тестируем на ПК — пишем локальный адрес. Когда выложим в сеть — поменяем на бесплатную ссылку сервера.
-const socket = io('http://localhost:3000'); 
+const socket = io('https://batz-taxi-backend.onrender.com');
 
 // Слушаем обновления заказов для водителя
 socket.on('order_list_update', (orders) => {
