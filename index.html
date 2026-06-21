@@ -652,35 +652,34 @@
             rebuildRouteLine();
         }
 
-        async function resolveCoordinatesToAddress(lat, lon) {
-            if(isOrderProcessing) return;
-            if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
+function resolveCoordinatesToAddress(lat, lon) {
+    // Используем проверенный бесплатный сервер с четким указанием языка (ru)
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ru`;
 
-            // Поиск ближайшего совпадения в локальной базе Шарбакты
-            let closest = null, minD = Infinity;
-            sharbaktyGeoDictionary.forEach(p => {
-                let d = Math.pow(p.lat - lat, 2) + Math.pow(p.lon - lon, 2);
-                if(d < minD) { minD = d; closest = p; }
-            });
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+        if (data && data.address) {
+            const parts = data.address;
+            const road = parts.road || parts.pedestrian || parts.suburb || "";
+            const house = parts.house_number || "";
 
-            // Если ближе чем 150 метров — привязываемся к красивому адресу
-            if(closest && minD < 0.00002) {
-                document.getElementById('pin-address-bubble').innerText = closest.name;
-                document.getElementById(activeInputContext + '-address').value = closest.name;
+            // Проверяем: если геокодер прислал и улицу, и точный номер дома
+            if (road && house) {
+                // ВАЖНО: замени 'inp-address-from' на точный ID твоего текстового поля "Откуда"
+                document.getElementById('inp-address-from').value = `${road}, ${house}`;
             } else {
-                try {
-                    const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon}&lat=${lat}`);
-                    const d = await r.json();
-                    if(d.features && d.features.length > 0) {
-                        let st = d.features[0].properties.street || d.features[0].properties.name || "Точка на карте";
-                        st = st.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = st;
-                        document.getElementById(activeInputContext + '-address').value = st;
-                    }
-                } catch(e) {
-                    document.getElementById('pin-address-bubble').innerText = "Точка на карте";
-                }
+                // Если номера дома нет (например, маркер стоит посреди парка), пишем название места
+                document.getElementById('inp-address-from').value = data.name || data.display_name;
             }
+        }
+    })
+    .catch(err => {
+        console.error("Ошибка обновления адреса:", err);
+        // Запасной вариант на случай сбоя сети — выводим просто координаты
+        document.getElementById('inp-address-from').value = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    });
+}
             rebuildRouteLine();
         }
 
