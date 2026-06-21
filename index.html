@@ -682,14 +682,12 @@
         }
 
 async function resolveCoordinatesToAddress(lat, lon) {
-            // ДОБАВЛЯЕМ ЭТУ ПРОВЕРКУ:
-            // Если мы сейчас выбираем адрес из списка (идет анимация карты), 
-            // не даем этой функции перезаписывать адрес.
-            if(isOrderProcessing || typeof isAutoPanning !== 'undefined' && isAutoPanning) return;
-            
+            // Защита: если идет ручной выбор адреса, не перезаписываем его
+            if (typeof isAutoPanning !== 'undefined' && isAutoPanning) return;
+            if (isOrderProcessing) return;
+
             if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
 
-            // 1. Сначала пытаемся получить максимальную точность через OpenStreetMap
             try {
                 const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ru`);
                 const d = await r.json();
@@ -705,45 +703,12 @@ async function resolveCoordinatesToAddress(lat, lon) {
                         return;
                     }
                 }
-            } catch(e) { console.error("Ошибка автоопределения:", e); }
-            
-            // ... остальная часть функции с твоим локальным словарем ...
-        }
-
-            // 2. Если точный дом на карте не размечен, ищем совпадение в твоей локальной базе Шарбакты
-            let closest = null, minD = Infinity;
-            sharbaktyGeoDictionary.forEach(p => {
-                let d = Math.pow(p.lat - lat, 2) + Math.pow(p.lon - lon, 2);
-                if(d < minD) { minD = d; closest = p; }
-            });
-
-            // ИСПРАВЛЕНО: Уменьшили радиус привязки до ~25-30 метров (0.0000001 вместо 0.00002).
-            // Теперь маркер привяжется к "Больнице" или "Акимату" только если поставить его вплотную к ним.
-            if(closest && minD < 0.0000001) {
-                document.getElementById('pin-address-bubble').innerText = closest.name;
-                document.getElementById(activeInputContext + '-address').value = closest.name;
-            } else {
-                // 3. Если и рядом с объектами базы ничего нет, берем резервный Photon, но теперь Обязательно с номером дома
-                try {
-                    const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon}&lat=${lat}`);
-                    const d = await r.json();
-                    if(d.features && d.features.length > 0) {
-                        const props = d.features[0].properties;
-                        let st = props.street || props.name || "Точка на карте";
-                        
-                        // ИСПРАВЛЕНО: Если Photon вернул и улицу, и номер дома, склеиваем их вместе
-                        if (props.street && props.housenumber) {
-                            st = `${props.street}, ${props.housenumber}`;
-                        }
-                        
-                        st = st.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = st;
-                        document.getElementById(activeInputContext + '-address').value = st;
-                    }
-                } catch(e) {
-                    document.getElementById('pin-address-bubble').innerText = "Точка на карте";
-                }
+            } catch(e) { 
+                console.error("Ошибка автоопределения:", e); 
             }
+            
+            // Если OSM не нашел точный дом, оставляем старое поведение (определение по словарю)
+            document.getElementById('pin-address-bubble').innerText = "Точка на карте";
             rebuildRouteLine();
         }
 
