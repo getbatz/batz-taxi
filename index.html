@@ -282,10 +282,16 @@
         </div>
 
         <div class="payment-grid">
-            <div class="payment-item active" id="p-cash" onclick="selectPaymentMode('cash')"><span data-i18n="payCash">💵 Наличные</span></div>
-            <div class="payment-item" id="p-kaspi" onclick="selectPaymentMode('kaspi')"><span>Kaspi</span></div>
-            <div class="payment-item" id="p-halyk" onclick="selectPaymentMode('halyk')"><span>Halyk</span></div>
-        </div>
+    <div class="payment-item active" id="p-cash" onclick="selectPaymentMode('cash')"><span data-i18n="payCash">💵 Наличные</span></div>
+    <div class="payment-item" id="p-kaspi" onclick="selectPaymentMode('kaspi')">
+        <img src="kaspi-logo.png" style="width: 24px; height: 24px; object-fit: contain; border-radius: 6px; margin-bottom: 2px;" alt="Kaspi">
+        <span>Kaspi</span>
+    </div>
+    <div class="payment-item" id="p-halyk" onclick="selectPaymentMode('halyk')">
+        <img src="halyk-logo.png" style="width: 24px; height: 24px; object-fit: contain; border-radius: 6px; margin-bottom: 2px;" alt="Halyk">
+        <span>Halyk</span>
+    </div>
+</div>
 
         <div class="input-box" id="change-input-block">
             <input type="number" id="cash-change-from" placeholder="С какой суммы подготовить сдачу?">
