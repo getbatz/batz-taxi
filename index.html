@@ -15,8 +15,9 @@
         .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 2000; display: flex; justify-content: space-between; }
         .btn-top { background: #ffcc00; color: #000; border: none; padding: 10px 15px; border-radius: 20px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        /* Кнопка Мое Местоположение на карте */
-        .gps-location-btn { position: absolute; bottom: 15px; right: 15px; z-index: 2000; background: #fff; color: #000; border: none; width: 45px; height: 45px; border-radius: 50%; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 3px solid #ffcc00; }
+        /* Полупрозрачная кнопка-прицел GPS местоположения */
+        .gps-location-btn { position: absolute; bottom: 20px; right: 20px; z-index: 2000; background: rgba(30, 30, 30, 0.75); border: 2px solid rgba(255, 204, 0, 0.6); width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); transition: all 0.2s ease; }
+        .gps-location-btn:active { transform: scale(0.95); background: rgba(255, 204, 0, 0.2); }
 
         .bottom-panel { width: 100%; height: 55%; background: #1e1e1e; padding: 18px; box-sizing: border-box; border-radius: 24px 24px 0 0; position: absolute; bottom: 0; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border-top: 2px solid #ffcc00; overflow-y: auto; display: none; }
         .active-panel { display: block; }
@@ -41,10 +42,12 @@
         .pay-container { display: flex; gap: 8px; margin: 12px 0; }
         .pay-card { flex: 1; background: #2d2d2d; border: 2px solid #333; padding: 8px; border-radius: 12px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
         .pay-card.active { border-color: #ffcc00; background: #3a3a26; }
+        .pay-card img { height: 20px; object-fit: contain; margin-bottom: 2px; }
+        .pay-card span { font-size: 11px; font-weight: bold; }
 
         .lang-selector { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
-        .lang-btn { background: #333; border: 1px solid #555; color: white; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-        .lang-btn.active { background: #ffcc00; color: black; font-weight: bold; }
+        .lang-btn { background: #333; border: 1px solid #555; color: white; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .lang-btn.active { background: #ffcc00; color: black; }
 
         .btn-bac { width: 100%; padding: 14px; background: #ffcc00; border: none; border-radius: 14px; font-weight: bold; font-size: 16px; color: #000; cursor: pointer; text-transform: uppercase; }
         .btn-status { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; color: #fff; margin-top: 6px; }
@@ -55,17 +58,26 @@
 <body>
 
     <div class="top-bar">
-        <button class="btn-top" onclick="openProfile()">👤 Профиль</button>
+        <button class="btn-top" id="lk-toggle-btn" onclick="openProfile()">👤 Профиль</button>
         <button class="btn-top" id="role-toggle-btn" onclick="toggleRole()">🚕 Водитель</button>
     </div>
 
     <div id="map">
-        <button class="gps-location-btn" onclick="locateMe()" title="Определить мое положение">🎯</button>
+        <button class="gps-location-btn" onclick="locateMe()">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffcc00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="7"></circle>
+                <line x1="12" y1="1" x2="12" y2="4"></line>
+                <line x1="12" y1="20" x2="12" y2="23"></line>
+                <line x1="1" y1="12" x2="4" y2="12"></line>
+                <line x1="20" y1="12" x2="23" y2="12"></line>
+                <circle cx="12" cy="12" r="1.5" fill="#ffcc00"></circle>
+            </svg>
+        </button>
     </div>
 
     <div id="panel-auth" class="bottom-panel">
         <div class="brand-title" id="l-reg-title">РЕГИСТРАЦИЯ БАЦ</div>
-        <div class="role-indicator">Заполните данные один раз</div>
+        <div class="role-indicator" id="l-reg-sub">Заполните данные один раз</div>
         <div class="input-group">
             <label id="l-reg-name-lbl">Ваше имя</label>
             <input type="text" id="reg-name" placeholder="Введите имя">
@@ -100,7 +112,7 @@
             </div>
         </div>
 
-        <button class="btn-bac" style="margin-top: 15px;" onclick="saveProfileData()">Сохранить</button>
+        <button class="btn-bac" id="l-reg-save-btn" style="margin-top: 15px;" onclick="saveProfileData()">Сохранить</button>
     </div>
 
     <div id="panel-passenger-home" class="bottom-panel active-panel">
@@ -108,25 +120,25 @@
         <div class="role-indicator" id="l-sub-title">Щербактинский район • Шарбакты</div>
 
         <div class="input-group">
-            <input type="text" id="from-address" placeholder="Откуда (Перетащите маркер А или введите)" oninput="searchAddress(this, 'from-suggestions')">
+            <input type="text" id="from-address" placeholder="Откуда (Перетащите маркер А или введите)">
             <div id="from-suggestions" class="suggestions"></div>
         </div>
         <div class="input-group">
-            <input type="text" id="to-address" placeholder="Куда (Куда едем? Перетащите маркер Б)" oninput="searchAddress(this, 'to-suggestions')">
+            <input type="text" id="to-address" placeholder="Куда (Куда едем? Перетащите маркер Б)">
             <div id="to-suggestions" class="suggestions"></div>
         </div>
 
         <div class="pay-container">
             <div class="pay-card active" id="p-cash" onclick="selectPayment('cash')"><span>💵 Наличные</span></div>
-            <div class="pay-card" id="p-kaspi" onclick="selectPayment('kaspi')"><span>📱 Kaspi</span></div>
-            <div class="pay-card" id="p-halyk" onclick="selectPayment('halyk')"><span>💳 Halyk</span></div>
+            <div class="pay-card" id="p-kaspi" onclick="selectPayment('kaspi')"><img src="./kaspi-logo.png" alt="Kaspi"><span>Kaspi</span></div>
+            <div class="pay-card" id="p-halyk" onclick="selectPayment('halyk')"><img src="./halyk-logo.png" alt="Halyk"><span>Halyk</span></div>
         </div>
 
         <div class="input-group" id="change-field">
             <input type="number" id="cash-change-from" placeholder="С какой суммы нужна сдача?">
         </div>
 
-        <div style="margin: 12px 0; font-size:16px; text-align:center; font-weight:bold; color:#ffcc00;" id="live-price-display">
+        <div style="margin: 12px 0; font-size:15px; text-align:center; font-weight:bold; color:#ffcc00;" id="live-price-display">
             Укажите маршрут для расчета цены
         </div>
 
@@ -134,28 +146,29 @@
     </div>
 
     <div id="panel-confirm" class="bottom-panel">
-        <div class="brand-title">ПОДТВЕРЖДЕНИЕ</div>
-        <div class="role-indicator">Проверьте цену и маршрут</div>
+        <div class="brand-title" id="l-conf-title">ПОДТВЕРЖДЕНИЕ</div>
+        <div class="role-indicator" id="l-conf-sub">Проверьте цену и маршрут</div>
         
         <div class="order-card" id="confirm-details-card" style="margin-bottom: 15px; font-size: 14px; line-height: 1.5;"></div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-            <button class="btn-status btn-blue" style="margin:0; flex:1;" onclick="addBonusPrice()">+50 ₸ Торг</button>
-            <button class="btn-status btn-green" style="margin:0; flex:1;" onclick="resetBonusPrice()">Сбросить цену</button>
+            <button class="btn-status btn-blue" style="margin:0; flex:1;" id="l-add-price-btn" onclick="addBonusPrice()">+50 ₸ Торг</button>
+            <button class="btn-status btn-green" style="margin:0; flex:1;" id="l-reset-price-btn" onclick="resetBonusPrice()">Сбросить цену</button>
         </div>
-        <button class="btn-bac" onclick="sendOrderToBackend()">Отправить заказ</button>
-        <button class="btn-status btn-red" onclick="cancelConfirmation()">Назад</button>
+        <button class="btn-bac" id="l-send-order-btn" onclick="sendOrderToBackend()">Отправить заказ</button>
+        <button class="btn-status btn-red" id="l-back-btn" onclick="cancelConfirmation()">Назад</button>
     </div>
 
     <div id="panel-passenger-status" class="bottom-panel">
-        <div class="brand-title">Поиск машины...</div>
+        <div class="brand-title" id="l-search-title">Поиск машины...</div>
         <div class="role-indicator">Заказ отправлен водителям БАЦ</div>
         <div id="assigned-driver-info" class="order-card" style="display: none;"></div>
-        <button class="btn-status btn-red" onclick="location.reload()">Отменить поездку</button>
+        <button class="btn-status btn-red" id="l-cancel-ride-btn" onclick="location.reload()">Отменить поездку</button>
     </div>
 
     <div id="panel-driver-radar" class="bottom-panel">
         <div class="brand-title">БАЦ РАДАР ⚡</div>
+        <div class="role-indicator">Свободные заказы в районе</div>
         <div id="radar-orders-container"></div>
     </div>
 
@@ -167,17 +180,45 @@
     </div>
 
     <div id="panel-lk" class="bottom-panel">
-        <div class="brand-title">ПРОФИЛЬ</div>
+        <div class="brand-title" id="l-lk-title">ПРОФИЛЬ</div>
+        
         <div class="lang-selector">
             <button class="lang-btn active" id="lang-ru" onclick="changeLang('ru')">RU</button>
             <button class="lang-btn" id="lang-kz" onclick="changeLang('kz')">KZ</button>
             <button class="lang-btn" id="lang-en" onclick="changeLang('en')">EN</button>
         </div>
-        <button class="btn-status btn-blue" style="margin-bottom:15px;" onclick="editProfileFromLK()">Редактировать анкету</button>
-        <button class="btn-status btn-red" onclick="closeProfile()">Назад</button>
+
+        <button class="btn-status btn-blue" style="margin-bottom:15px; margin-top: 15px;" id="l-lk-edit-btn" onclick="editProfileFromLK()">Редактировать анкету</button>
+        <button class="btn-status btn-red" id="l-lk-back-btn" onclick="closeProfile()">Назад</button>
     </div>
 
     <script>
+        // Полноценная локализация абсолютно всех элементов интерфейса
+        const langPack = {
+            ru: {
+                sub: "Щербактинский район • Шарбакты", order: "Вызвать БАЦ", regTitle: "РЕГИСТРАЦИЯ БАЦ", regSub: "Заполните данные один раз",
+                nameLbl: "Ваше имя", phoneLbl: "Номер телефона", fromPlh: "Откуда (Перетащите маркер А или введите)", toPlh: "Куда (Куда едем? Перетащите маркер Б)",
+                priceLabel: "Стоимость поездки будет составлять: ", noRoute: "Укажите маршрут для расчета цены", confirmTitle: "ПОДТВЕРЖДЕНИЕ", confirmSub: "Проверьте цену и маршрут",
+                addPrice: "+50 ₸ Торг", resetPrice: "Сбросить цену", sendOrder: "Отправить заказ", back: "Назад", profileTitle: "ПРОФИЛЬ", editProfile: "Редактировать анкету",
+                driverMode: "🚕 Водитель", passengerMode: "👨‍✈️ Клиент", searchCar: "Поиск машины...", save: "Сохранить", cancelRide: "Отменить поездку"
+            },
+            kz: {
+                sub: "Шарбақты ауданы • Шарбақты", order: "БАЦ Шақыру", regTitle: "БАЦ ТІРКЕЛУ", regSub: "Деректерді бір рет толтырыңыз",
+                nameLbl: "Сіздің есіміңіз", phoneLbl: "Телефон нөмірі", fromPlh: "Қайдан (А маркерін жылжытыңыз немесе енгізіңіз)", toPlh: "Қайда (Б маркерін жылжытыңыз)",
+                priceLabel: "Жол жүру құны: ", noRoute: "Бағаны есептеу үшін маршрутты көрсетіңіз", confirmTitle: "РАСТАУ", confirmSub: "Баға мен маршрутты тексеріңіз",
+                addPrice: "+50 ₸ Саудаласу", resetPrice: "Бағаны қайтару", sendOrder: "Тапсырысты жіберу", back: "Артқа", profileTitle: "ПРОФИЛЬ", editProfile: "Анкетіні өңдеу",
+                driverMode: "🚕 Жүргізуші", passengerMode: "👨‍✈️ Клиент", searchCar: "Көлік ізделуде...", save: "Сақтау", cancelRide: "Сапардан бас тарту"
+            },
+            en: {
+                sub: "Sherbakty District • Sharbakty", order: "Call БАЦ", regTitle: "БАЦ REGISTRATION", regSub: "Fill in the form once",
+                nameLbl: "Your Name", phoneLbl: "Phone Number", fromPlh: "From (Drag marker A or type)", toPlh: "To (Where to? Drag marker B)",
+                priceLabel: "The ride cost will be: ", noRoute: "Specify route to calculate price", confirmTitle: "CONFIRMATION", confirmSub: "Check route and price",
+                addPrice: "+50 ₸ Offer", resetPrice: "Reset Price", sendOrder: "Send Order", back: "Back", profileTitle: "PROFILE", editProfile: "Edit Profile",
+                driverMode: "🚕 Driver", passengerMode: "👨‍✈️ Client", searchCar: "Searching for car...", save: "Save", cancelRide: "Cancel Ride"
+            }
+        };
+        let currentLang = 'ru';
+
         const tg = window.Telegram.WebApp;
         tg.expand();
 
@@ -187,20 +228,19 @@
         const socket = io('https://batz-taxi-backend.onrender.com');
 
         let myProfile = null, currentRole = "passenger", paymentMethod = "cash";
-        let userLat = 52.48945, userLon = 78.16120; // Центр Шарбакты
+        let userLat = 52.48945, userLon = 78.16120; 
         let destLat = null, destLon = null, baseCalculatedPrice = 250, calculatedPrice = 250, calculatedDistanceMeters = 0;
         let activeOrderData = null, jobStage = 1;
 
-        // Создаем карту Leaflet
+        // Создаем карту
         const map = L.map('map', { zoomControl: false }).setView([userLat, userLon], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         
-        // Маркер А: Полностью перетаскиваемый (draggable: true)
+        // Маркеры А и Б полностью подвижны
         let userMarker = L.marker([userLat, userLon], { draggable: true }).addTo(map);
-        // Маркер Б: Инициализируем null, сделаем его тоже перетаскиваемым при клике
         let destMarker = null, routeLine = null;
 
-        // Привязываем события перетаскивания для маркера А
+        // Навешиваем события перетаскивания на маркер А
         userMarker.on('dragend', function() {
             const pos = userMarker.getLatLng();
             userLat = pos.lat; userLon = pos.lng;
@@ -208,15 +248,14 @@
             calculateRoute();
         });
 
-        // Клик по карте теперь создает или ПЕРЕМЕЩАЕТ маркер Б (Куда)
+        // Клик по карте перемещает/ставит перетаскиваемый маркер Б
         map.on('click', function(e) {
-            if (currentRole !== "passenger") return;
+            if (currentRole !== "passenger" || document.getElementById('panel-confirm').classList.contains('active-panel')) return;
             destLat = e.latlng.lat; destLon = e.latlng.lng;
             
             if (destMarker) {
                 destMarker.setLatLng([destLat, destLon]);
             } else {
-                // Создаем маркер Б и делаем его тоже ПЕРЕТАСКИВАЕМЫМ!
                 destMarker = L.marker([destLat, destLon], { draggable: true }).addTo(map);
                 destMarker.on('dragend', function() {
                     const pos = destMarker.getLatLng();
@@ -225,33 +264,72 @@
                     calculateRoute();
                 });
             }
-            
             reverseGeocode(destLat, destLon, 'to-address');
             calculateRoute();
         });
 
-        // Функция Кнопки GPS (Определить местоположение)
+        // Функция переключения языков
+        function changeLang(lng) {
+            currentLang = lng;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`lang-${lng}`).classList.add('active');
+            
+            // Массовый перевод интерфейса
+            document.getElementById('l-sub-title').innerText = langPack[lng].sub;
+            document.getElementById('l-order-btn').innerText = langPack[lng].order;
+            document.getElementById('l-reg-title').innerText = langPack[lng].regTitle;
+            document.getElementById('l-reg-sub').innerText = langPack[lng].regSub;
+            document.getElementById('l-reg-name-lbl').innerText = langPack[lng].nameLbl;
+            document.getElementById('l-reg-phone-lbl').innerText = langPack[lng].phoneLbl;
+            document.getElementById('l-reg-save-btn').innerText = langPack[lng].save;
+            
+            document.getElementById('from-address').placeholder = langPack[lng].fromPlh;
+            document.getElementById('to-address').placeholder = langPack[lng].toPlh;
+            
+            document.getElementById('l-conf-title').innerText = langPack[lng].confirmTitle;
+            document.getElementById('l-conf-sub').innerText = langPack[lng].confirmSub;
+            document.getElementById('l-add-price-btn').innerText = langPack[lng].addPrice;
+            document.getElementById('l-reset-price-btn').innerText = langPack[lng].resetPrice;
+            document.getElementById('l-send-order-btn').innerText = langPack[lng].sendOrder;
+            document.getElementById('l-back-btn').innerText = langPack[lng].back;
+            
+            document.getElementById('l-search-title').innerText = langPack[lng].searchCar;
+            document.getElementById('l-cancel-ride-btn').innerText = langPack[lng].cancelRide;
+            
+            document.getElementById('l-lk-title').innerText = langPack[lng].profileTitle;
+            document.getElementById('l-lk-edit-btn').innerText = langPack[lng].editProfile;
+            document.getElementById('l-lk-back-btn').innerText = langPack[lng].back;
+            
+            // Корректная смена текста кнопки в шапке
+            const roleBtn = document.getElementById('role-toggle-btn');
+            if (currentRole === 'passenger') {
+                roleBtn.innerText = langPack[lng].driverMode;
+            } else {
+                roleBtn.innerText = langPack[lng].passengerMode;
+            }
+
+            // Обновляем текст цены на лету
+            if (destLat) {
+                document.getElementById('live-price-display').innerText = `${langPack[currentLang].priceLabel}${calculatedPrice} ₸`;
+            } else {
+                document.getElementById('live-price-display').innerText = langPack[currentLang].noRoute;
+            }
+        }
+
+        // Логика кнопки GPS (Определить положение)
         function locateMe() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
-                    userLat = pos.coords.latitude; 
-                    userLon = pos.coords.longitude;
+                    userLat = pos.coords.latitude; userLon = pos.coords.longitude;
                     map.setView([userLat, userLon], 15);
                     userMarker.setLatLng([userLat, userLon]);
                     reverseGeocode(userLat, userLon, 'from-address');
                     calculateRoute();
-                }, (err) => {
-                    alert("Не удалось получить геопозицию. Убедитесь, что GPS включен.");
-                }, { enableHighAccuracy: true });
-            } else {
-                alert("Геолокация не поддерживается вашим устройством.");
+                }, () => { alert("Включите GPS на устройстве."); }, { enableHighAccuracy: true });
             }
         }
 
-        // Автоматически определяем местоположение при старте, если есть доступ
-        locateMe();
-
-        // Умное обратное геокодирование, собирающее полные улицы Шарбакты
+        // Умный парсинг адреса без слова "Шарбахты" в названии улицы
         async function reverseGeocode(lat, lon, elementId) {
             try {
                 const res = await fetch(`https://photon.komoot.io/reverse?lon=${lon}&lat=${lat}`);
@@ -261,20 +339,27 @@
                     let street = p.street || p.name || "";
                     let house = p.housenumber || "";
                     
-                    // Если Photon отдал "Улица 29" или пустоту вместо улицы, подставляем корректный ориентир района
-                    if (!street || street.toLowerCase().includes("улица")) {
-                        street = p.district || p.locality || p.city || "Шарбакты";
+                    // Чистим мусорные совпадения, если Photon выдал вместо улицы название села
+                    if (street === "Шарбахты" || street === "Щербакты" || street.toLowerCase().includes("село")) {
+                        street = "";
                     }
-                    
-                    const fullAddress = `${street} ${house}`.trim();
-                    document.getElementById(elementId).value = fullAddress || "Выбранная точка на карте";
+                    street = street.replace(/Шарбахты/g, "").replace(/Щербакты/g, "").trim();
+
+                    if (!street) {
+                        document.getElementById(elementId).value = house ? `Дом ${house}` : "Точка на карте";
+                    } else {
+                        document.getElementById(elementId).value = `${street} ${house}`.trim();
+                    }
                 }
             } catch(e) {
-                document.getElementById(elementId).value = "Точка на карте (" + lat.toFixed(4) + ")";
+                document.getElementById(elementId).value = "Точка выбрана";
             }
         }
 
-        // Поиск по буквам в подсказках с фокусом на координаты Шарбакты
+        // Привязка поиска по буквам
+        document.getElementById('from-address').addEventListener('input', function() { searchAddress(this, 'from-suggestions'); });
+        document.getElementById('to-address').addEventListener('input', function() { searchAddress(this, 'to-suggestions'); });
+
         async function searchAddress(input, suggestionsId) {
             const query = input.value;
             const suggBox = document.getElementById(suggestionsId);
@@ -289,8 +374,9 @@
                     suggBox.style.display = 'block';
                     data.features.forEach(f => {
                         const p = f.properties;
-                        const mainName = p.name || p.street || "Улица";
-                        const displayTitle = `${mainName} ${p.housenumber || ''} (${p.city || 'Шарбакты'})`.trim();
+                        let mainName = p.name || p.street || "";
+                        if(mainName === "Шарбахты") mainName = p.district || "Улица";
+                        const displayTitle = `${mainName} ${p.housenumber || ''}`.trim();
                         
                         const div = document.createElement('div');
                         div.className = 'suggestion-item';
@@ -298,7 +384,6 @@
                         div.onclick = () => {
                             input.value = displayTitle;
                             suggBox.style.display = 'none';
-                            
                             const lon = f.geometry.coordinates[0];
                             const lat = f.geometry.coordinates[1];
 
@@ -308,11 +393,8 @@
                                 map.setView([userLat, userLon], 15);
                             } else {
                                 destLat = lat; destLon = lon;
-                                if (!destMarker) {
-                                    destMarker = L.marker([destLat, destLon], { draggable: true }).addTo(map);
-                                } else {
-                                    destMarker.setLatLng([destLat, destLon]);
-                                }
+                                if (!destMarker) destMarker = L.marker([destLat, destLon], { draggable: true }).addTo(map);
+                                else destMarker.setLatLng([destLat, destLon]);
                                 map.setView([destLat, destLon], 15);
                             }
                             calculateRoute();
@@ -323,7 +405,7 @@
             } catch(e) {}
         }
 
-        // Мгновенный авторасчет цены без лишних кнопок
+        // Моментальный расчет стоимости
         async function calculateRoute() {
             if (!destLat) return;
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${destLon},${destLat}?overview=full&geometries=geojson`;
@@ -337,7 +419,6 @@
                     if (routeLine) map.removeLayer(routeLine);
                     routeLine = L.polyline(coords, { color: '#ffcc00', weight: 5 }).addTo(map);
 
-                    // Базовый тариф: 250тг до 1.2 км, далее 90тг/км
                     if (calculatedDistanceMeters <= 1200) {
                         calculatedPrice = 250;
                     } else {
@@ -347,16 +428,42 @@
                     calculatedPrice = Math.round(calculatedPrice / 10) * 10;
                     baseCalculatedPrice = calculatedPrice;
 
-                    document.getElementById('live-price-display').innerText = `Предварительная стоимость: ${calculatedPrice} ₸`;
+                    document.getElementById('live-price-display').innerText = `${langPack[currentLang].priceLabel}${calculatedPrice} ₸`;
                 }
             } catch (err) {}
         }
 
-        // Авторизация и переключение экранов
+        // Логика выбора оплаты — сдача показывается ТОЛЬКО для Наличных
+        function selectPayment(m) {
+            paymentMethod = m;
+            document.querySelectorAll('.pay-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`p-${m}`).classList.add('active');
+            
+            if (m === 'cash') {
+                document.getElementById('change-field').style.display = 'block';
+            } else {
+                document.getElementById('change-field').style.display = 'none';
+            }
+        }
+
+        // Авторизация
         socket.emit('auth_user', { telegramId: userTgId, firstName: userFirstName, role: currentRole });
+        
         socket.on('auth_success', (res) => {
             myProfile = res.profile;
-            if (!res.isRegistered) switchPanel('panel-auth');
+            if (!res.isRegistered) {
+                switchPanel('panel-auth');
+                if (currentRole === 'driver') document.getElementById('driver-reg-fields').style.display = 'block';
+                else document.getElementById('driver-reg-fields').style.display = 'none';
+            } else {
+                // Если зарегистрирован, пускаем в нужную комнату интерфейса
+                if (currentRole === 'driver') {
+                    switchPanel('panel-driver-radar');
+                    socket.emit('driver_ready');
+                } else {
+                    switchPanel('panel-passenger-home');
+                }
+            }
         });
 
         function switchPanel(panelId) {
@@ -364,24 +471,63 @@
             document.getElementById(panelId).classList.add('active-panel');
         }
 
+        function toggleRole() {
+            if (currentRole === "passenger") {
+                currentRole = "driver";
+            } else {
+                currentRole = "passenger";
+            }
+            document.getElementById('role-toggle-btn').innerText = langPack[currentLang][currentRole === 'driver' ? 'passengerMode' : 'driverMode'];
+            socket.emit('auth_user', { telegramId: userTgId, firstName: userFirstName, role: currentRole });
+        }
+
+        function openProfile() { switchPanel('panel-lk'); }
+        function closeProfile() { switchPanel(currentRole === 'driver' ? 'panel-driver-radar' : 'panel-passenger-home'); }
+        
+        // Кнопка редактирования анкеты внутри ЛК — теперь заполняет все поля
+        function editProfileFromLK() {
+            switchPanel('panel-auth');
+            document.getElementById('reg-name').value = myProfile?.name || "";
+            document.getElementById('reg-phone').value = myProfile?.phone || "";
+            if (currentRole === 'driver') {
+                document.getElementById('driver-reg-fields').style.display = 'block';
+                document.getElementById('reg-car-brand').value = myProfile?.carBrand || "";
+                document.getElementById('reg-car-model').value = myProfile?.carModel || "";
+                document.getElementById('reg-car-color').value = myProfile?.carColor || "";
+                document.getElementById('reg-car-num').value = myProfile?.carNumber || "";
+                document.getElementById('reg-bank-phone').value = myProfile?.kaspiPhone || "";
+                document.getElementById('reg-bank-name').value = myProfile?.kaspiName || "";
+            } else {
+                document.getElementById('driver-reg-fields').style.display = 'none';
+            }
+        }
+
         function saveProfileData() {
             const pInput = document.getElementById('reg-phone').value;
-            if(pInput.length < 10) { alert("Введите корректные 10 цифр номера!"); return; }
+            if(pInput.length < 10) { alert("Введите 10 цифр номера!"); return; }
             
             const profileData = {
                 name: document.getElementById('reg-name').value,
                 phone: pInput
             };
+            if(currentRole === 'driver') {
+                profileData.carBrand = document.getElementById('reg-car-brand').value;
+                profileData.carModel = document.getElementById('reg-car-model').value;
+                profileData.carColor = document.getElementById('reg-car-color').value;
+                profileData.carNumber = document.getElementById('reg-car-num').value;
+                profileData.kaspiPhone = document.getElementById('reg-bank-phone').value;
+                profileData.kaspiName = document.getElementById('reg-bank-name').value;
+            }
             socket.emit('save_profile', { telegramId: userTgId, role: currentRole, profileData });
         }
-        socket.on('profile_updated', (res) => { myProfile = res.profile; alert("Данные сохранены!"); closeProfile(); });
+        socket.on('profile_updated', (res) => { myProfile = res.profile; alert("Сохранено!"); closeProfile(); });
 
         function prepareOrder() {
-            if(!destLat) { alert("Выберите куда ехать на карте!"); return; }
+            if(!destLat) { alert("Выберите куда ехать!"); return; }
             document.getElementById('confirm-details-card').innerHTML = `
                 📍 <strong>Откуда:</strong> ${document.getElementById('from-address').value}<br>
                 🏁 <strong>Куда:</strong> ${document.getElementById('to-address').value}<br>
-                💰 <strong>Стоимость:</strong> <span style="font-size:18px; color:#ffcc00;">${calculatedPrice} ₸</span>
+                💰 <strong>Стоимость:</strong> <span style="font-size:18px; color:#ffcc00; font-weight:bold;">${calculatedPrice} ₸</span>
             `;
             switchPanel('panel-confirm');
         }
@@ -389,9 +535,74 @@
         function addBonusPrice() { calculatedPrice += 50; prepareOrder(); }
         function resetBonusPrice() { calculatedPrice = baseCalculatedPrice; prepareOrder(); }
         function cancelConfirmation() { switchPanel('panel-passenger-home'); }
-        function openProfile() { switchPanel('panel-lk'); }
-        function closeProfile() { switchPanel(currentRole === 'driver' ? 'panel-driver-radar' : 'panel-passenger-home'); }
-        function selectPayment(m) { paymentMethod = m; document.querySelectorAll('.pay-card').forEach(c => c.classList.remove('active')); document.getElementById(`p-${m}`).classList.add('active'); }
+        
+        function sendOrderToBackend() {
+            socket.emit('create_order', {
+                fromLat: userLat, fromLng: userLon, toLat: destLat, toLng: destLon,
+                fromText: document.getElementById('from-address').value,
+                toText: document.getElementById('to-address').value,
+                distance: (calculatedDistanceMeters / 1000).toFixed(1),
+                price: calculatedPrice,
+                payment: paymentMethod,
+                changeFrom: document.getElementById('cash-change-from').value || null
+            });
+        }
+
+        socket.on('order_created_success', () => { switchPanel('panel-passenger-status'); });
+        socket.on('order_error', (data) => { alert(data.message); location.reload(); });
+
+        socket.on('order_list_update', (orders) => {
+            if (currentRole !== "driver") return;
+            const container = document.getElementById('radar-orders-container');
+            if (orders.length === 0) { container.innerHTML = '<div style="text-align:center; color:#666; margin-top:20px;">Заказов нет...</div>'; return; }
+            container.innerHTML = '';
+            orders.forEach(o => {
+                container.innerHTML += `
+                    <div class="order-card">
+                        <div style="font-size:16px; font-weight:bold; color:#ffcc00;">💵 ${o.price} ₸ (${o.payment.toUpperCase()})</div>
+                        <div style="font-size:13px; margin:4px 0;">📍 А: ${o.fromText}<br>🏁 Б: ${o.toText}</div>
+                        <button class="btn-status btn-green" onclick="driverAccepts(${o.id})">Принять заказ</button>
+                    </div>
+                `;
+            });
+        });
+
+        function driverAccepts(id) { socket.emit('accept_order', { orderId: id }); }
+
+        socket.on('order_status_changed', (data) => {
+            if (currentRole === "passenger") {
+                const drCard = document.getElementById('assigned-driver-info');
+                if (data.status === 'accepted') {
+                    drCard.style.display = 'block';
+                    drCard.innerHTML = `<strong>Водитель:</strong> ${data.driverData.name}<br><strong>Авто:</strong> ${data.driverData.car} (${data.driverData.number})`;
+                } else if (data.status === 'finished') {
+                    alert(`Поездка завершена! К оплате: ${calculatedPrice} ₸.`);
+                    location.reload();
+                }
+            } else if (currentRole === "driver" && data.status === 'accepted') {
+                activeOrderData = data;
+                document.getElementById('current-job-details').innerHTML = `📍 Подача: ${activeOrderData.fromText}<br>🏁 Назначение: ${activeOrderData.toText}<br>💰 Сумма: ${activeOrderData.price} ₸`;
+                switchPanel('panel-driver-taximeter');
+                jobStage = 1;
+            }
+        });
+
+        function advanceJobStage() {
+            const btn = document.getElementById('taximeter-action-btn');
+            if (jobStage === 1) {
+                socket.emit('update_status', { passengerId: activeOrderData.passengerId, status: 'driver_here' });
+                btn.innerText = "ПОЕХАЛИ"; jobStage = 2;
+            } else if (jobStage === 2) {
+                socket.emit('update_status', { passengerId: activeOrderData.passengerId, status: 'in_progress' });
+                btn.innerText = "ЗАВЕРШИТЬ ПОЕЗДКУ"; jobStage = 3;
+            } else if (jobStage === 3) {
+                socket.emit('update_status', { passengerId: activeOrderData.passengerId, status: 'finished', price: activeOrderData.price });
+                location.reload();
+            }
+        }
+
+        // Автоматический старт геолокации
+        locateMe();
     </script>
 </body>
 </html>
