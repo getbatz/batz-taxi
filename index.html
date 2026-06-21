@@ -27,7 +27,7 @@
         }
 
         /* Полноэкранная карта */
-        #map-container { width: 100%; height: 50%; position: relative; z-index: 1; }
+        #map-container { width: 100%; height: 48%; position: relative; z-index: 1; }
         #map { width: 100%; height: 100%; }
 
         /* Фиксированный центральный маркер-прицел как в Яндекс Такси */
@@ -40,23 +40,24 @@
         }
         .map-center-pin.dragging { transform: translate(-50%, -110%) scale(1.08); opacity: 0.9; }
         .pin-bubble {
-            background: #000; color: #fff; padding: 5px 10px; border-radius: 12px;
-            font-size: 11px; font-weight: bold; white-space: nowrap;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4); margin-bottom: 4px; border: 1px solid var(--accent);
+            background: #000; color: #fff; padding: 6px 12px; border-radius: 14px;
+            font-size: 12px; font-weight: bold; white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); margin-bottom: 4px; border: 1px solid var(--accent);
         }
 
         /* Верхняя панель управления */
         .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 2000; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+        
         .btn-round { 
-            background: var(--bg-panel); border: 1px solid var(--border); width: 42px; height: 42px; 
+            background: var(--bg-panel); border: 1px solid var(--border); width: 44px; height: 44px; 
             border-radius: 50%; display: flex; align-items: center; justify-content: center; 
             cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); pointer-events: auto;
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
         }
-        .btn-round svg { fill: var(--text-main); width: 20px; height: 20px; }
+        .btn-round svg { fill: var(--text-main); width: 22px; height: 22px; }
         .btn-round.accent svg { fill: var(--accent); }
 
-        /* Кнопка центрирования GPS на карте */
+        /* Кнопка центрирования GPS на карте - перенесена в правый нижний угол карты */
         .gps-btn { position: absolute; bottom: 15px; right: 15px; z-index: 1900; }
 
         /* Боковое меню (Sidebar) */
@@ -80,7 +81,7 @@
             margin: 0 auto 12px; background: #333; display: flex; align-items: center; justify-content: center;
             font-size: 28px; font-weight: bold; color: var(--accent);
         }
-        .user-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+        .user-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .user-status { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
         
         .sidebar-menu { flex: 1; overflow-y: auto; padding: 15px 10px; }
@@ -94,7 +95,7 @@
 
         /* Нижние панели интерфейса */
         .bottom-sheet {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+            position: absolute; bottom: 0; left: 0; right: 0; height: 52%;
             background: var(--bg-panel); border-radius: 24px 24px 0 0; z-index: 2000;
             box-shadow: 0 -8px 30px rgba(0,0,0,0.5); border-top: 1.5px solid rgba(255,204,0,0.2);
             box-sizing: border-box; padding: 20px; overflow-y: auto; display: none;
@@ -103,37 +104,37 @@
 
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        .sheet-title { font-size: 22px; font-weight: 900; color: var(--accent); text-align: center; margin-bottom: 4px; text-transform: uppercase; }
+        .sheet-title { font-size: 20px; font-weight: 900; color: var(--accent); text-align: center; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
         .sheet-sub { font-size: 11px; text-align: center; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* Поля ввода и Группы */
         .input-box { margin-bottom: 12px; position: relative; }
         .input-box label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600; }
-        .input-box input {
+        .input-box input, .input-box select {
             width: 100%; padding: 14px; background: var(--bg-input); border: 1px solid var(--border);
             border-radius: 14px; color: var(--text-main); font-size: 15px; box-sizing: border-box; outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.2s;
         }
-        .input-box input:focus { border-color: var(--accent); }
-        .input-box input.active-focus { border-color: var(--accent); background: #333322; }
+        .input-box input:focus, .input-box select:focus { border-color: var(--accent); }
+        .input-box input.active-focus { border-color: var(--accent); background: #2f2f1e; }
 
         /* Поле ввода телефона с идеальной интеграцией маски */
-        .phone-wrapper { display: flex; background: var(--bg-input); border: 1px solid var(--border); border-radius: 14px; align-items: center; padding-left: 14px; box-sizing: border-box; }
+        .phone-wrapper { display: flex; background: var(--bg-input); border: 1px solid var(--border); border-radius: 14px; align-items: center; padding-left: 14px; box-sizing: border-box; width: 100%; }
         .phone-wrapper:focus-within { border-color: var(--accent); }
         .phone-cc { color: var(--text-main); font-size: 15px; margin-right: 2px; user-select: none; }
-        .phone-wrapper input { border: none !important; padding-left: 2px !important; background: transparent !important; }
+        .phone-wrapper input { border: none !important; padding: 14px 14px 14px 2px !important; background: transparent !important; }
 
         /* Контейнер подсказок автозаполнения */
         .search-suggestions {
             position: absolute; top: 100%; left: 0; right: 0; background: #252525;
             border: 1px solid var(--border); border-radius: 12px; z-index: 3500;
-            max-height: 180px; overflow-y: auto; display: none; box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            max-height: 180px; overflow-y: auto; display: none; box-shadow: 0 8px 25px rgba(0,0,0,0.7);
         }
-        .suggestion-row { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .suggestion-row { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #333; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #fff; }
         .suggestion-row:hover { background: #333; color: var(--accent); }
 
         /* Селектор платежных систем */
-        .payment-grid { display: flex; gap: 10px; margin: 15px 0; }
+        .payment-grid { display: flex; gap: 10px; margin: 15px 0 10px; }
         .payment-item {
             flex: 1; background: var(--bg-input); border: 2px solid var(--border);
             padding: 10px; border-radius: 14px; text-align: center; cursor: pointer;
@@ -144,23 +145,37 @@
         .payment-item img { height: 22px; object-fit: contain; }
         .payment-item span { font-size: 12px; font-weight: bold; }
 
+        /* Быстрые статичные кнопки выбора сдачи */
+        .change-presets { display: flex; gap: 8px; margin-top: 6px; overflow-x: auto; padding-bottom: 4px; }
+        .preset-btn {
+            background: #252525; border: 1px solid var(--border); color: var(--text-main);
+            padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: bold;
+            cursor: pointer; white-space: nowrap; transition: all 0.2s;
+        }
+        .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
         /* Кнопки */
-        .btn-main { width: 100%; padding: 15px; background: var(--accent); border: none; border-radius: 16px; font-weight: bold; font-size: 16px; color: #000; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(255,204,0,0.2); }
+        .btn-main { width: 100%; padding: 15px; background: var(--accent); border: none; border-radius: 16px; font-weight: bold; font-size: 16px; color: #000; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(255,204,0,0.25); }
         .btn-main:active { transform: scale(0.98); }
         
-        .btn-sub { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; color: #fff; margin-top: 8px; text-transform: uppercase; }
+        .btn-sub { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; color: #fff; margin-top: 8px; text-transform: uppercase; display: block; text-align: center; box-sizing: border-box; }
         .btn-blue { background: #007bff; } .btn-green { background: #28a745; } .btn-red { background: #dc3545; }
 
-        .info-card { background: var(--bg-input); border-radius: 16px; padding: 15px; border-left: 4px solid var(--accent); margin-top: 12px; font-size: 14px; line-height: 1.6; }
+        .info-card { background: var(--bg-input); border-radius: 16px; padding: 15px; border-left: 4px solid var(--accent); margin-top: 12px; font-size: 14px; line-height: 1.6; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         
+        /* Вкладки для панели администратора */
+        .admin-tabs { display: flex; background: #252525; border-radius: 12px; padding: 4px; margin-bottom: 15px; gap: 4px; }
+        .admin-tab-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); padding: 8px; font-size: 11px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
+        .admin-tab-btn.active { background: var(--bg-panel); color: var(--accent); border: 1px solid rgba(255,204,0,0.2); }
+
         /* Анимация импульсного радара поиска */
         .radar-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0; }
         .radar-pulse {
             width: 60px; height: 60px; background: var(--accent); border-radius: 50%;
             position: relative; animation: pulse 1.5s infinite ease-out;
-            display: flex; align-items: center; justify-content: center;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
         }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.7); } 100% { box-shadow: 0 0 0 35px rgba(255,204,0,0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,204,0,0.7); } 100% { box-shadow: 0 0 0 40px rgba(255,204,0,0); } }
 
         /* Вкладки аналитики заработка водителя */
         .analytics-grid { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -175,9 +190,6 @@
         <div class="btn-round" id="burger-menu-btn" onclick="toggleSidebar()">
             <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </div>
-        <div class="btn-round accent gps-btn" onclick="triggerGPS()">
-            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-        </div>
     </div>
 
     <div id="map-container">
@@ -189,6 +201,9 @@
                 <circle cx="12" cy="12" r="3" fill="black"/>
             </svg>
         </div>
+        <div class="btn-round accent gps-btn" onclick="triggerGPS()">
+            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+        </div>
     </div>
 
     <div class="sidebar-overlay" id="sidebar-shadow" onclick="toggleSidebar()"></div>
@@ -199,7 +214,7 @@
             <div class="user-status" id="sb-role-status">Пассажир</div>
         </div>
         <div class="sidebar-menu">
-            <div class="menu-item active" onclick="selectMenuRoute('passenger')">
+            <div class="menu-item active" id="m-item-passenger" onclick="selectMenuRoute('passenger')">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
                 <span>Режим Пассажира</span>
             </div>
@@ -207,17 +222,21 @@
                 <svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1s1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1s1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
                 <span id="driver-menu-text">Панель Водителя</span>
             </div>
-            <div class="menu-item" onclick="alert('История поездок пуста')">
+            <div class="menu-item" id="admin-menu-item" onclick="selectMenuRoute('admin')">
+                <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v2h-2V7zm0 4h2v6h-2v-6z"/></svg>
+                <span>Панель Администратора 👑</span>
+            </div>
+            <div class="menu-item" onclick="alert('История пуста')">
                 <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
                 <span>История поездок</span>
             </div>
-            <div class="menu-item" onclick="alert('Тариф: В пределах села Шарбакты базовый тариф 250₸ до 1.2 км, далее 90₸ за км.')">
+            <div class="menu-item" onclick="alert('Тариф: По селу базовый 250₸ до 1.2 км, далее 90₸ за км.')">
                 <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
                 <span>Тарифы</span>
             </div>
-            <div class="menu-item" onclick="alert('Лицензионное соглашение сервиса БАЦ Такси.')">
-                <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                <span>Соглашение</span>
+            <div class="menu-item" style="margin-top: 40px; border-top: 1px solid #333;" onclick="clearProfileLogout()">
+                <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L13.67 11H3v2h10.67zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                <span>Выйти из профиля</span>
             </div>
         </div>
     </div>
@@ -244,11 +263,11 @@
         <div class="sheet-sub">Шарбакты • Оперативная подача</div>
 
         <div class="input-box">
-            <input type="text" id="from-address" placeholder="Откуда едем? (Выберите на карте)" readonly onclick="focusAddressInput('from')">
+            <input type="text" id="from-address" placeholder="Откуда едем? (Введите или выберите на карте)" oninput="handleManualSearchInput('from')" onfocus="focusAddressInput('from')">
             <div id="from-suggestions" class="search-suggestions"></div>
         </div>
         <div class="input-box">
-            <input type="text" id="to-address" placeholder="Куда едем? (Нажмите сюда и двигайте карту)" readonly onclick="focusAddressInput('to')">
+            <input type="text" id="to-address" placeholder="Куда едем? (Введите или выберите на карте)" oninput="handleManualSearchInput('to')" onfocus="focusAddressInput('to')">
             <div id="to-suggestions" class="search-suggestions"></div>
         </div>
 
@@ -260,36 +279,58 @@
 
         <div class="input-box" id="change-input-block">
             <input type="number" id="cash-change-from" placeholder="С какой суммы подготовить сдачу?">
+            <div class="change-presets">
+                <div class="preset-btn" onclick="applyChangePreset(500)">500 ₸</div>
+                <div class="preset-btn" onclick="applyChangePreset(1000)">1000 ₸</div>
+                <div class="preset-btn" onclick="applyChangePreset(2000)">2000 ₸</div>
+                <div class="preset-btn" onclick="applyChangePreset(5000)">5000 ₸</div>
+                <div class="preset-btn" onclick="applyChangePreset(10000)">10000 ₸</div>
+            </div>
         </div>
 
-        <div class="info-card" id="price-output-view" style="text-align: center; font-weight: bold; color: var(--accent);">
+        <div id="price-output-view" style="text-align: center; font-weight: bold; color: var(--accent); margin: 12px 0; font-size: 15px;">
             Укажите конечный пункт для просчета
         </div>
 
-        <button class="btn-main" id="order-submit-btn" style="margin-top: 10px;" onclick="initiateOrderWorkflow()">Вызвать такси</button>
+        <button class="btn-main" id="order-submit-btn" onclick="initiateOrderWorkflow()">Вызвать такси</button>
     </div>
 
     <div id="panel-driver-onboarding" class="bottom-sheet">
-        <div class="sheet-title">СТАТЬ ВОДИТЕЛЕМ</div>
-        <div class="sheet-sub">Отправка анкеты на модерацию администратору</div>
-        <div style="display: flex; gap: 8px;">
-            <div class="input-box" style="flex:1;"><label>Марка авто</label><input type="text" id="d-car-brand" placeholder="Audi"></div>
-            <div class="input-group" style="flex:1;"><label>Модель</label><input type="text" id="d-car-model" placeholder="100"></div>
+        <div class="sheet-title">АНКЕТА ВОДИТЕЛЯ</div>
+        <div class="sheet-sub">Пожалуйста, укажите точные данные автомобиля</div>
+        <div class="input-box">
+            <label>ФИО Водителя полностью</label>
+            <input type="text" id="d-full-name" placeholder="Иванов Иван Иванович">
         </div>
         <div style="display: flex; gap: 8px;">
-            <div class="input-box" style="flex:1;"><label>Цвет кузова</label><input type="text" id="d-car-color" placeholder="Серый"></div>
-            <div class="input-box" style="flex:1;"><label>Гос. номер</label><input type="text" id="d-car-num" placeholder="777 AAA 14"></div>
+            <div class="input-box" style="flex:1;">
+                <label>Марка авто</label>
+                <select id="d-car-brand" onchange="syncCarModelsDropdown()">
+                    <option value="">Выберите марку</option>
+                    <option value="Audi">Audi</option>
+                    <option value="BMW">BMW</option>
+                    <option value="Toyota">Toyota</option>
+                    <option value="Lada">Lada</option>
+                    <option value="Volkswagen">Volkswagen</option>
+                </select>
+            </div>
+            <div class="input-box" style="flex:1;">
+                <label>Модель авто</label>
+                <select id="d-car-model">
+                    <option value="">Сначала марку</option>
+                </select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <div class="input-box" style="flex:1;"><label>Цвет кузова</label><input type="text" id="d-car-color" placeholder="Белый"></div>
+            <div class="input-box" style="flex:1;"><label>Гос. номер</label><input type="text" id="d-car-num" placeholder="123 AAA 14"></div>
         </div>
         <div class="input-box">
-            <label>Телефон переводов Kaspi/Halyk</label>
+            <label>Телефон для переводов (Kaspi/Halyk)</label>
             <div class="phone-wrapper">
                 <span class="phone-cc">+7</span>
                 <input type="tel" id="d-bank-phone" placeholder="7071234567" maxlength="10">
             </div>
-        </div>
-        <div class="input-box">
-            <label>ФИО получателя перевода</label>
-            <input type="text" id="d-bank-name" placeholder="Серик К.">
         </div>
         <button class="btn-main" onclick="submitDriverApplication()">Отправить заявку</button>
     </div>
@@ -298,22 +339,21 @@
         <div class="sheet-title">МОДЕРАЦИЯ ЗАЯВКИ</div>
         <div class="sheet-sub">Проверка документов администрацией</div>
         <div class="info-card" style="text-align:center;">
-            Ваша заявка успешно отправлена на проверку. Обычно это занимает от 10 минут до 2 часов.
+            Ваша заявка отправлена. Вы можете утвердить её самостоятельно в Панели Администратора.
         </div>
-        <button class="btn-sub btn-green" onclick="simulateAdminApproval()">[Демо] Одобрить заявку мгновенно</button>
     </div>
 
     <div id="panel-passenger-search" class="bottom-sheet">
         <div class="radar-box">
             <div class="radar-pulse">🚕</div>
-            <div class="sheet-title" style="margin-top:20px;" id="search-status-text">Ищем машину поближе...</div>
-            <div class="sheet-sub">Уведомление отправляется ближайшим водителям БАЦ</div>
+            <div class="sheet-title" style="margin-top:20px;">Ищем машину...</div>
+            <div class="sheet-sub">Заказ рассылается ближайшим активным машинам</div>
         </div>
         <button class="btn-sub btn-red" onclick="abortRideSession()">Отменить поиск такси</button>
     </div>
 
     <div id="panel-passenger-tracking" class="bottom-sheet">
-        <div class="sheet-title" id="track-main-status">Водитель принял заказ</div>
+        <div class="sheet-title" id="track-main-status">Заказ принят</div>
         <div class="sheet-sub" id="track-sub-status">Ожидайте машину по адресу подачи</div>
         <div class="info-card" id="track-driver-card"></div>
         <button class="btn-sub btn-red" onclick="abortRideSession()">Отменить заказ</button>
@@ -343,39 +383,106 @@
         <button class="btn-main" id="d-taximeter-action-btn" style="margin-top:15px;" onclick="progressDriverJobStage()">Я НА МЕСТЕ</button>
     </div>
 
+    <div id="panel-admin-dashboard" class="bottom-sheet">
+        <div class="sheet-title">УПРАВЛЕНИЕ БАЦ 👑</div>
+        <div class="admin-tabs">
+            <button class="admin-tab-btn active" id="at-drivers" onclick="switchAdminSubTab('drivers')">Водители</button>
+            <button class="admin-tab-btn" id="at-tariffs" onclick="switchAdminSubTab('tariffs')">Тарифы</button>
+            <button class="admin-tab-btn" id="at-logs" onclick="switchAdminSubTab('logs')">Логи рейсов</button>
+        </div>
+
+        <div id="asub-drivers">
+            <div id="admin-pending-drivers-list"></div>
+            <div style="margin-top:10px; font-weight:bold; font-size:12px; color:var(--text-muted); text-transform:uppercase;">Активные водители системы:</div>
+            <div id="admin-approved-drivers-list"></div>
+        </div>
+
+        <div id="asub-tariffs" style="display:none;">
+            <div class="input-box"><label>Базовый тариф посадки (до 1.2 км), ₸</label><input type="number" id="cfg-base-price" value="250"></div>
+            <div class="input-box"><label>Стоимость за последующий километр, ₸</label><input type="number" id="cfg-per-km" value="90"></div>
+            <div class="input-box"><label>Активный промокод на скидку (%)</label><input type="text" id="cfg-promocode" value="BATZ2026"></div>
+            <button class="btn-sub btn-green" onclick="saveAdminTariffsSettings()">Сохранить тарифную сетку</button>
+        </div>
+
+        <div id="asub-logs" style="display:none;">
+            <div id="admin-rides-history-log" style="max-height:220px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        if(tg.enableClosingConfirmation) tg.enableClosingConfirmation();
 
-        const userTgId = tg.initDataUnsafe?.user?.id || 999999999;
-        const userFirstName = tg.initDataUnsafe?.user?.first_name || "Гость";
+        // База данных Шарбакты для идеальных мгновенных подсказок
+        const localPoiDatabase = [
+            { name: "Районная Больница", lat: 52.4931, lon: 78.1581, type: "poi" },
+            { name: "Казпочта (Почта)", lat: 52.4885, lon: 78.1632, type: "poi" },
+            { name: "Халык Банк (Halyk)", lat: 52.4891, lon: 78.1620, type: "poi" },
+            { name: "Каспи Банк (Kaspi)", lat: 52.4898, lon: 78.1610, type: "poi" },
+            { name: "Районный Акимат", lat: 52.4875, lon: 78.1645, type: "poi" },
+            { name: "ЦОН (Госуслуги)", lat: 52.4905, lon: 78.1595, type: "poi" },
+            { name: "Школа №1", lat: 52.4940, lon: 78.1640, type: "poi" },
+            { name: "Школа №2", lat: 52.4845, lon: 78.1550, type: "poi" },
+            { name: "Улица Матросова 1", lat: 52.4910, lon: 78.1601, type: "street" },
+            { name: "Улица Матросова 5", lat: 52.4913, lon: 78.1605, type: "street" },
+            { name: "Улица Матросова 6", lat: 52.4915, lon: 78.1608, type: "street" },
+            { name: "Улица Матросова 8", lat: 52.4918, lon: 78.1612, type: "street" },
+            { name: "Улица Матросова 12", lat: 52.4922, lon: 78.1618, type: "street" },
+            { name: "Улица Ленина 10", lat: 52.4880, lon: 78.1630, type: "street" },
+            { name: "Улица Ленина 15", lat: 52.4884, lon: 78.1642, type: "street" },
+            { name: "Улица Мира 4", lat: 52.4895, lon: 78.1570, type: "street" },
+            { name: "Улица Советов 24", lat: 52.4862, lon: 78.1660, type: "street" }
+        ];
+
+        // Карта моделей машин
+        const carModelsMapping = {
+            "Audi": ["100", "80", "A6", "A4", "Q7"],
+            "BMW": ["5-Series", "3-Series", "X5", "7-Series"],
+            "Toyota": ["Camry", "Corolla", "Land Cruiser", "RAV4"],
+            "Lada": ["Vesta", "Granta", "Priora", "Niva", "2107"],
+            "Volkswagen": ["Passat", "Golf", "Jetta", "Sharan"]
+        };
+
+        const userTgId = tg.initDataUnsafe?.user?.id || 777123999;
+        const userFirstName = tg.initDataUnsafe?.user?.first_name || "Пользователь";
 
         const socket = io('https://batz-taxi-backend.onrender.com');
 
-        // Глобальное состояние
-        let myProfile = null;
+        // Глобальные переменные конфигурации и состояний
+        let myProfile = JSON.parse(localStorage.getItem('batz_user_session')) || null;
         let activeRole = "passenger";
         let chosenPayment = "cash";
-        let activeInputContext = "from"; // 'from' или 'to'
+        let activeInputContext = "from";
         
-        let geoLatA = 52.48945, geoLonA = 78.16120; // Координаты Откуда
-        let geoLatB = null, geoLonB = null;       // Координаты Куда
+        let geoLatA = 52.48945, geoLonA = 78.16120;
+        let geoLatB = null, geoLonB = null;
         
         let finalPrice = 250, baseCalculatedPrice = 250, routeDistanceMeters = 0;
         let activeDriverMarker = null, routePolyline = null;
         let driverWorkflowStage = 1;
         let currentOrderPayload = null;
+        let isOrderProcessing = false; // Блокиратор перестройки при поиске/езде
+
+        // Настройки админа (Локальный стейт)
+        let adminBasePrice = 250;
+        let adminPricePerKm = 90;
+        let mockGlobalRidesLog = [
+            { date: "21.06.2026 14:22", from: "Матросова 8", to: "Районная Больница", cost: 250, type: "Kaspi", driver: "Серик К.", status: "Успешно" },
+            { date: "21.06.2026 16:05", from: "Почта", to: "Улица Ленина 15", cost: 310, type: "Наличные", driver: "Алексей В.", status: "Успешно" }
+        ];
 
         // Инициализация карты Leaflet
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([geoLatA, geoLonA], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // При движении карты (в стиле Яндекс.Такси центрируем пин и берем адрес)
         map.on('movestart', () => {
+            if (isOrderProcessing) return;
             document.getElementById('map-interactive-pin').classList.add('dragging');
         });
 
         map.on('moveend', () => {
+            if (isOrderProcessing) return;
             document.getElementById('map-interactive-pin').classList.remove('dragging');
             const mapCenter = map.getCenter();
             resolveCoordinatesToAddress(mapCenter.lat, mapCenter.lng);
@@ -388,23 +495,76 @@
         }
 
         function focusAddressInput(ctx) {
+            if(isOrderProcessing) return;
             activeInputContext = ctx;
             document.getElementById('from-address').classList.remove('active-focus');
             document.getElementById('to-address').classList.remove('active-focus');
-            
-            if(ctx === 'from') {
-                document.getElementById('from-address').classList.add('active-focus');
-                map.panTo([geoLatA, geoLonA]);
-            } else {
-                document.getElementById('to-address').classList.add('active-focus');
-                if(geoLatB && geoLonB) {
-                    map.panTo([geoLatB, geoLonB]);
-                }
-            }
+            document.getElementById(ctx + '-address').classList.add('active-focus');
         }
 
-        // Обратное геокодирование центра карты
+        // Подгрузка моделей при выборе марки
+        function syncCarModelsDropdown() {
+            const brand = document.getElementById('d-car-brand').value;
+            const modelSelect = document.getElementById('d-car-model');
+            modelSelect.innerHTML = '';
+            if(!brand) {
+                modelSelect.innerHTML = '<option value="">Сначала марку</option>';
+                return;
+            }
+            carModelsMapping[brand].forEach(m => {
+                modelSelect.innerHTML += `<option value="${m}">${m}</option>`;
+            });
+        }
+
+        // Ручной ввод текста в адресную строку + живой поиск
+        function handleManualSearchInput(ctx) {
+            if(isOrderProcessing) return;
+            activeInputContext = ctx;
+            const text = document.getElementById(ctx + '-address').value.toLowerCase().trim();
+            const sugBox = document.getElementById(ctx + '-suggestions');
+            
+            if(text.length < 2) {
+                sugBox.style.display = 'none';
+                return;
+            }
+
+            // Фильтрация локальной базы
+            const filtered = localPoiDatabase.filter(item => item.name.toLowerCase().includes(text));
+            
+            if(filtered.length === 0) {
+                sugBox.innerHTML = `<div class="suggestion-row" style="color:#888;">Адрес не найден, выберите на карте</div>`;
+            } else {
+                sugBox.innerHTML = '';
+                filtered.forEach(item => {
+                    sugBox.innerHTML += `
+                        <div class="suggestion-row" onclick="selectSearchSuggestion('${item.name}', ${item.lat}, ${item.lon})">
+                            <span>${item.type === 'poi' ? '🏢' : '📍'}</span>
+                            <div>${item.name}</div>
+                        </div>`;
+                });
+            }
+            sugBox.style.display = 'block';
+        }
+
+        function selectSearchSuggestion(name, lat, lon) {
+            const ctx = activeInputContext;
+            document.getElementById(ctx + '-address').value = name;
+            document.getElementById(ctx + '-suggestions').style.display = 'none';
+
+            if (ctx === 'from') {
+                geoLatA = lat; geoLonA = lon;
+            } else {
+                geoLatB = lat; geoLonB = lon;
+            }
+
+            map.panTo([lat, lon]);
+            document.getElementById('pin-address-bubble').innerText = name;
+            rebuildRouteLine();
+        }
+
+        // Обратное геокодирование при перетаскивании карты
         async function resolveCoordinatesToAddress(lat, lon) {
+            if(isOrderProcessing) return;
             if (activeInputContext === 'from') {
                 geoLatA = lat; geoLonA = lon;
             } else {
@@ -419,19 +579,11 @@
                     let street = p.street || p.name || "";
                     let house = p.housenumber || "";
                     
-                    if (street === "Шарбахты" || street === "Щербакты" || street.toLowerCase().includes("село")) {
-                        street = "";
-                    }
                     street = street.replace(/Шарбахты/g, "").replace(/Щербакты/g, "").trim();
-
                     const parsedAddress = street ? `${street} ${house}`.trim() : (house ? `Дом ${house}` : "Точка на карте");
-                    document.getElementById('pin-address-bubble').innerText = parsedAddress;
                     
-                    if (activeInputContext === 'from') {
-                        document.getElementById('from-address').value = parsedAddress;
-                    } else {
-                        document.getElementById('to-address').value = parsedAddress;
-                    }
+                    document.getElementById('pin-address-bubble').innerText = parsedAddress;
+                    document.getElementById(activeInputContext + '-address').value = parsedAddress;
                 }
             } catch(e) {
                 document.getElementById('pin-address-bubble').innerText = "Точка на карте";
@@ -439,9 +591,9 @@
             rebuildRouteLine();
         }
 
-        // Построение и перерасчет маршрута ОСРМ
+        // Прорисовка маршрута ОСРМ
         async function rebuildRouteLine() {
-            if (!geoLatB || !geoLonB) return;
+            if (!geoLatB || !geoLonB || isOrderProcessing) return;
             const url = `https://router.project-osrm.org/route/v1/driving/${geoLonA},${geoLatA};${geoLonB},${geoLatB}?overview=full&geometries=geojson`;
             try {
                 const response = await fetch(url);
@@ -453,19 +605,21 @@
                     if (routePolyline) map.removeLayer(routePolyline);
                     routePolyline = L.polyline(geometry, { color: '#ffcc00', weight: 6, opacity: 0.85 }).addTo(map);
 
-                    // Расчет тарифа
+                    // Калькуляция по тарифам админа
                     if (routeDistanceMeters <= 1200) {
-                        finalPrice = 250;
+                        finalPrice = adminBasePrice;
                     } else {
                         let overDistance = routeDistanceMeters - 1200;
-                        finalPrice = 250 + Math.round((overDistance / 1000) * 90);
+                        finalPrice = adminBasePrice + Math.round((overDistance / 1000) * adminPricePerKm);
                     }
                     finalPrice = Math.round(finalPrice / 10) * 10;
-                    baseCalculatedPrice = finalPrice;
-
                     document.getElementById('price-output-view').innerText = `Стоимость поездки будет составлять: ${finalPrice} ₸`;
                 }
             } catch (err) {}
+        }
+
+        function applyChangePreset(val) {
+            document.getElementById('cash-change-from').value = val;
         }
 
         function triggerGPS() {
@@ -475,7 +629,7 @@
                     const lon = pos.coords.longitude;
                     map.setView([lat, lon], 16);
                     resolveCoordinatesToAddress(lat, lon);
-                }, () => { alert("Пожалуйста, включите GPS в настройках устройства."); }, { enableHighAccuracy: true });
+                }, () => { alert("Пожалуйста, активируйте геолокацию на смартфоне."); }, { enableHighAccuracy: true });
             }
         }
 
@@ -486,13 +640,17 @@
             document.getElementById('change-input-block').style.display = mode === 'cash' ? 'block' : 'none';
         }
 
-        // Боковая навигация
+        // Роутинг бокового меню
         function selectMenuRoute(target) {
             toggleSidebar();
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            
             if(target === 'passenger') {
                 activeRole = "passenger";
+                document.getElementById('m-item-passenger').classList.add('active');
                 switchVisiblePanel('panel-passenger-home');
             } else if(target === 'driver') {
+                document.getElementById('driver-menu-item').classList.add('active');
                 if(!myProfile?.isDriverApproved) {
                     switchVisiblePanel(myProfile?.isDriverApplied ? 'panel-driver-pending' : 'panel-driver-onboarding');
                 } else {
@@ -500,92 +658,184 @@
                     switchVisiblePanel('panel-driver-radar');
                     socket.emit('driver_ready_pool');
                 }
+            } else if(target === 'admin') {
+                document.getElementById('admin-menu-item').classList.add('active');
+                switchVisiblePanel('panel-admin-dashboard');
+                renderAdminDashboardData();
             }
         }
 
-        // Переключатель экранов
         function switchVisiblePanel(id) {
             document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
 
-        // Системная авторизация юзера
-        socket.emit('auth_user', { telegramId: userTgId, firstName: userFirstName });
+        // Сессионная авторизация и автосохранение
+        if(myProfile) {
+            executeInitializationFlow(myProfile);
+        } else {
+            socket.emit('auth_user', { telegramId: userTgId, firstName: userFirstName });
+        }
+
         socket.on('auth_result_success', (res) => {
             myProfile = res.userProfile;
-            document.getElementById('sb-name').innerText = myProfile.name || userFirstName;
-            document.getElementById('sb-avatar').innerText = (myProfile.name || userFirstName).charAt(0).toUpperCase();
+            localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
+            executeInitializationFlow(myProfile, res.isRegisteredCompleted);
+        });
+
+        function executeInitializationFlow(profile, isReg = true) {
+            document.getElementById('sb-name').innerText = profile.name || userFirstName;
+            document.getElementById('sb-avatar').innerText = (profile.name || userFirstName).charAt(0).toUpperCase();
             
-            if(myProfile.isDriverApproved) {
+            if(profile.isDriverApproved) {
                 document.getElementById('driver-menu-text').innerText = "Панель Водителя (Активен)";
             }
-
-            if (!res.isRegisteredCompleted) {
+            if (!isReg && !profile.name) {
                 switchVisiblePanel('panel-auth');
-            } else {
-                switchVisiblePanel('panel-passenger-home');
             }
-        });
+        }
 
         function commitProfileRegistration() {
             const name = document.getElementById('reg-name').value.trim();
             const phone = document.getElementById('reg-phone').value.trim();
-            if(!name || phone.length < 10) { alert("Заполните корректно имя и 10 цифр телефона!"); return; }
+            if(!name || phone.length < 10) { alert("Укажите имя и корректный номер телефона."); return; }
             
+            myProfile = { telegramId: userTgId, name, phone, isDriverApplied: false, isDriverApproved: false };
+            localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
             socket.emit('complete_registration', { telegramId: userTgId, name, phone });
+            switchVisiblePanel('panel-passenger-home');
         }
-        socket.on('registration_committed_ok', (updatedProfile) => {
-            myProfile = updatedProfile;
+
+        function clearProfileLogout() {
+            localStorage.removeItem('batz_user_session');
             location.reload();
-        });
+        }
 
         function submitDriverApplication() {
-            const payload = {
-                carBrand: document.getElementById('d-car-brand').value,
-                carModel: document.getElementById('d-car-model').value,
-                carColor: document.getElementById('d-car-color').value,
-                carNumber: document.getElementById('d-car-num').value,
+            const fullName = document.getElementById('d-full-name').value.trim();
+            const brand = document.getElementById('d-car-brand').value;
+            const model = document.getElementById('d-car-model').value;
+            if(!fullName || !brand || !model) { alert("Заполните ФИО и выберите марку/модель авто из списка!"); return; }
+
+            myProfile.driverApplicationData = {
+                fullName, brand, model,
+                color: document.getElementById('d-car-color').value,
+                number: document.getElementById('d-car-num').value,
                 bankPhone: document.getElementById('d-bank-phone').value,
-                bankName: document.getElementById('d-bank-name').value
+                passengerPhone: myProfile.phone || ""
             };
-            socket.emit('apply_driver_status', { telegramId: userTgId, payload });
             myProfile.isDriverApplied = true;
+            localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
+            socket.emit('apply_driver_status', { telegramId: userTgId, payload: myProfile.driverApplicationData });
             switchVisiblePanel('panel-driver-pending');
         }
 
-        function simulateAdminApproval() {
-            myProfile.isDriverApproved = true;
-            myProfile.isDriverApplied = true;
-            document.getElementById('driver-menu-text').innerText = "Панель Водителя (Активен)";
-            alert("Статус водителя успешно одобрен администратором!");
-            selectMenuRoute('driver');
+        // Функционал Панели Администратора
+        function switchAdminSubTab(sub) {
+            document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('at-' + sub).classList.add('active');
+            
+            document.getElementById('asub-drivers').style.display = sub === 'drivers' ? 'block' : 'none';
+            document.getElementById('asub-tariffs').style.display = sub === 'tariffs' ? 'block' : 'none';
+            document.getElementById('asub-logs').style.display = sub === 'logs' ? 'block' : 'none';
         }
 
+        function renderAdminDashboardData() {
+            // Отрисовка списка заявок на модерацию
+            const pendingDiv = document.getElementById('admin-pending-drivers-list');
+            if(myProfile.isDriverApplied && !myProfile.isDriverApproved) {
+                pendingDiv.innerHTML = `
+                    <div class="info-card" style="border-left-color:#ffaa00;">
+                        <strong>Новая заявка:</strong> ${myProfile.driverApplicationData.fullName}<br>
+                        Транспорт: ${myProfile.driverApplicationData.brand} ${myProfile.driverApplicationData.model} (${myProfile.driverApplicationData.number})<br>
+                        Тел: +7 ${myProfile.driverApplicationData.bankPhone}
+                        <button class="btn-sub btn-green" onclick="adminApproveDriverAction()">Одобрить и принять</button>
+                    </div>`;
+            } else {
+                pendingDiv.innerHTML = `<div style="font-size:12px; color:#777; padding:10px 0;">Нет заявок на модерацию</div>`;
+            }
+
+            // Активные водители
+            const approvedDiv = document.getElementById('admin-approved-drivers-list');
+            if(myProfile.isDriverApproved) {
+                approvedDiv.innerHTML = `
+                    <div class="info-card" style="border-left-color:#28a745; display:flex; justify-content:between; align-items:center;">
+                        <div>
+                            <strong>${myProfile.driverApplicationData?.fullName || 'Тестовый аккаунт'}</strong><br>
+                            ${myProfile.driverApplicationData?.brand || 'Audi'} (${myProfile.driverApplicationData?.number || '777'})
+                        </div>
+                        <button class="btn-sub btn-red" style="width:70px; margin:0;" onclick="adminFireDriverAction()">Уволить</button>
+                    </div>`;
+            } else {
+                approvedDiv.innerHTML = `<div style="font-size:12px; color:#777; padding:5px 0;">В системе нет активных водителей</div>`;
+            }
+
+            // Аудит логов рейсов
+            const logsDiv = document.getElementById('admin-rides-history-log');
+            logsDiv.innerHTML = '';
+            mockGlobalRidesLog.forEach(l => {
+                logsDiv.innerHTML += `
+                    <div style="border-bottom:1px solid #333; padding:8px 0; font-size:12px;">
+                        <span style="color:var(--text-muted);">${l.date}</span> | <strong style="color:var(--accent);">${l.cost} ₸</strong> (${l.type})<br>
+                        Маршрут: <span>${l.from} → ${l.to}</span><br>
+                        Водитель: <span>${l.driver}</span> | Статус: <span style="color:#28a745;">${l.status}</span>
+                    </div>`;
+            });
+        }
+
+        function adminApproveDriverAction() {
+            myProfile.isDriverApproved = true;
+            localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
+            document.getElementById('driver-menu-text').innerText = "Панель Водителя (Активен)";
+            alert("Водитель успешно верифицирован и допущен к рейсам!");
+            renderAdminDashboardData();
+        }
+
+        function adminFireDriverAction() {
+            myProfile.isDriverApproved = false;
+            myProfile.isDriverApplied = false;
+            localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
+            document.getElementById('driver-menu-text').innerText = "Панель Водителя";
+            alert("Водитель успешно удален из базы данных системы.");
+            renderAdminDashboardData();
+        }
+
+        function saveAdminTariffsSettings() {
+            adminBasePrice = Number(document.getElementById('cfg-base-price').value);
+            adminPricePerKm = Number(document.getElementById('cfg-per-km').value);
+            alert("Новая тарифная сетка успешно сохранена на сервере!");
+        }
+
+        // Создание заказа
         function initiateOrderWorkflow() {
-            if(!geoLatB) { alert("Укажите на карте куда вы хотите поехать!"); return; }
+            if(!geoLatB) { alert("Пожалуйста, укажите точку прибытия Б на карте или через поиск!"); return; }
+            isOrderProcessing = true;
             switchVisiblePanel('panel-passenger-search');
             
+            const changeVal = document.getElementById('cash-change-from').value;
+
             socket.emit('post_new_order', {
                 passengerId: userTgId,
                 fromText: document.getElementById('from-address').value,
                 toText: document.getElementById('to-address').value,
                 latA: geoLatA, lonA: geoLonA, latB: geoLatB, lonB: geoLonB,
                 price: finalPrice, payment: chosenPayment,
-                change: document.getElementById('cash-change-from').value || null
+                change: changeVal ? changeVal + " ₸" : "Без сдачи"
             });
         }
 
         function abortRideSession() {
             socket.emit('cancel_active_order', { id: userTgId });
+            isOrderProcessing = false;
             location.reload();
         }
 
-        // Слушатели сокет-событий обновлений заказов
+        // Обновление свободного пула рейсов в реальном времени
         socket.on('broadcast_orders_list', (list) => {
             if(activeRole !== 'driver') return;
             const container = document.getElementById('driver-orders-list-view');
             if(list.length === 0) {
-                container.innerHTML = `<div style="text-align:center;color:#666;margin-top:20px;">Свободных поездок нет...</div>`;
+                container.innerHTML = `<div style="text-align:center;color:#666;margin-top:30px;">Свободных заказов в Шарбакты пока нет...</div>`;
                 return;
             }
             container.innerHTML = '';
@@ -593,10 +843,13 @@
                 container.innerHTML += `
                     <div class="info-card">
                         <div style="font-size:16px; font-weight:bold; color:var(--accent);">💵 Стоимость: ${o.price} ₸ (${o.payment.toUpperCase()})</div>
-                        <div style="margin:6px 0;font-size:13px;"><strong>А:</strong> ${o.fromText}<br><strong>Б:</strong> ${o.toText}</div>
-                        <button class="btn-sub btn-green" onclick="driverAcceptRide(${o.passengerId})">Принять заказ</button>
-                    </div>
-                `;
+                        <div style="font-size:13px; color:#ffaa00; margin-top:2px; font-weight:bold;">💵 Сдача: ${o.change || "Без сдачи"}</div>
+                        <div style="margin:8px 0; font-size:13px; line-height:1.4;">
+                            <strong>А:</strong> ${o.fromText}<br>
+                            <strong>Б:</strong> ${o.toText}
+                        </div>
+                        <button class="btn-sub btn-green" onclick="driverAcceptRide(${o.passengerId})">Принять заказ и выехать</button>
+                    </div>`;
             });
         });
 
@@ -606,20 +859,24 @@
 
         socket.on('order_assigned_state', (order) => {
             currentOrderPayload = order;
+            isOrderProcessing = true;
+            
+            const driverData = myProfile?.driverApplicationData || { fullName: "Серик К.", brand: "Audi", color: "Серый", number: "777 AAA 14", bankPhone: "7071234567" };
+
             if(activeRole === 'passenger' && order.passengerId === userTgId) {
                 switchVisiblePanel('panel-passenger-tracking');
                 document.getElementById('track-driver-card').innerHTML = `
-                    <strong>Водитель:</strong> ${order.driverInfo.name}<br>
-                    <strong>Транспорт:</strong> ${order.driverInfo.carColor} ${order.driverInfo.carBrand} (${order.driverInfo.carNumber})
+                    <strong>Водитель:</strong> ${driverData.fullName}<br>
+                    <strong>Авто:</strong> ${driverData.color} ${driverData.brand} (${driverData.number})
                 `;
-                // Отрисовка маркера движения авто
                 if(!activeDriverMarker) activeDriverMarker = L.marker([order.latA, order.lonA]).addTo(map);
             } else if(activeRole === 'driver' && order.driverId === userTgId) {
                 switchVisiblePanel('panel-driver-taximeter');
                 document.getElementById('d-active-job-card').innerHTML = `
                     <strong>Адрес подачи А:</strong> ${order.fromText}<br>
                     <strong>Куда Б:</strong> ${order.toText}<br>
-                    <strong>Сумма:</strong> ${order.price} ₸ (${order.payment.toUpperCase()})
+                    <strong>Сумма:</strong> ${order.price} ₸ (${order.payment.toUpperCase()})<br>
+                    <strong>Сдача:</strong> ${order.change || "Без сдачи"}
                 `;
                 driverWorkflowStage = 1;
                 document.getElementById('d-taximeter-action-btn').innerText = "Я НА МЕСТЕ";
@@ -629,22 +886,35 @@
         socket.on('status_pipeline_update', (data) => {
             if(activeRole === 'passenger') {
                 if(data.status === 'arrived') {
-                    document.getElementById('track-main-status').innerText = "Машина подана!";
-                    document.getElementById('track-sub-status').innerText = "Выходите к автомобилю, водитель ожидает.";
+                    document.getElementById('track-main-status').innerText = "Машина ожидает!";
+                    document.getElementById('track-sub-status').innerText = "Водитель на месте, выходите к машине.";
                 } else if(data.status === 'in_progress') {
-                    document.getElementById('track-main-status').innerText = "В пути • Поездка";
-                    document.getElementById('track-sub-status').innerText = "Вы двигаетесь к месту назначения.";
+                    document.getElementById('track-main-status').innerText = "Поездка выполняется";
+                    document.getElementById('track-sub-status').innerText = "Вы двигаетесь к конечной точке.";
                 } else if(data.status === 'finished') {
                     switchVisiblePanel('panel-passenger-invoice');
-                    let payInstructions = `К оплате: <strong style="color:var(--accent);font-size:18px;">${currentOrderPayload.price} ₸</strong><br>Способ: <strong>${currentOrderPayload.payment.toUpperCase()}</strong>`;
+                    const drData = myProfile?.driverApplicationData || { fullName: "Серик К.", bankPhone: "7071234567" };
+                    
+                    let payInstructions = `Итоговая сумма: <strong style="color:var(--accent); font-size:18px;">${currentOrderPayload.price} ₸</strong><br>Тип оплаты: <strong>${currentOrderPayload.payment.toUpperCase()}</strong>`;
                     if(currentOrderPayload.payment !== 'cash') {
-                        payInstructions += `<br><br><div style="border-top:1px solid #444;padding-top:10px;">
-                            Переведите на карту:<br>
-                            <strong>+7 ${currentOrderPayload.driverInfo.bankPhone}</strong><br>
-                            Получатель: <strong>${currentOrderPayload.driverInfo.bankName}</strong>
+                        payInstructions += `<br><br><div style="border-top:1px solid #444; padding-top:10px; font-size:13px;">
+                            Переведите средства на номер:<br>
+                            <strong style="font-size:15px; color:var(--accent);">+7 ${drData.bankPhone}</strong><br>
+                            Получатель: <strong>${drData.fullName}</strong>
                         </div>`;
                     }
                     document.getElementById('invoice-details-block').innerHTML = payInstructions;
+
+                    // Добавление в локальный админ лог
+                    mockGlobalRidesLog.unshift({
+                        date: "Только что",
+                        from: currentOrderPayload.fromText,
+                        to: currentOrderPayload.toText,
+                        cost: currentOrderPayload.price,
+                        type: currentOrderPayload.payment === 'cash' ? "Наличные" : "Каспи/Халык",
+                        driver: drData.fullName,
+                        status: "Успешно"
+                    });
                 }
             }
         });
@@ -653,25 +923,24 @@
             const btn = document.getElementById('d-taximeter-action-btn');
             if(driverWorkflowStage === 1) {
                 socket.emit('set_pipeline_status', { passengerId: currentOrderPayload.passengerId, status: 'arrived' });
-                document.getElementById('d-taxi-substate').innerText = "Ожидание посадки клиента";
+                document.getElementById('d-taxi-substate').innerText = "Ожидание клиента";
                 btn.innerText = "ПОЕХАЛИ"; driverWorkflowStage = 2;
             } else if(driverWorkflowStage === 2) {
                 socket.emit('set_pipeline_status', { passengerId: currentOrderPayload.passengerId, status: 'in_progress' });
-                document.getElementById('d-taxi-substate').innerText = "Выполняется рейс";
+                document.getElementById('d-taxi-substate').innerText = "Выполняется маршрут";
                 btn.innerText = "ЗАВЕРШИТЬ ПОЕЗДКУ"; driverWorkflowStage = 3;
             } else if(driverWorkflowStage === 3) {
                 socket.emit('set_pipeline_status', { passengerId: currentOrderPayload.passengerId, status: 'finished' });
-                // Симуляция зачисления статистики
-                document.getElementById('stat-day').innerText = `${currentOrderPayload.price} ₸`;
+                isOrderProcessing = false;
                 location.reload();
             }
         }
 
         function closeInvoiceReceipt() {
+            isOrderProcessing = false;
             location.reload();
         }
 
-        // Первичное определение геопозиции
         triggerGPS();
     </script>
 </body>
