@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>БАЦ Такси</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: #111; color: #fff; overflow: hidden; }
+        #map { width: 100%; height: 65%; z-index: 1; }
+        
+        /* Кнопка смены роли (Пассажир / Водитель) */
+        #role-toggle-btn {
+            position: absolute; top: 15px; right: 15px; z-index: 2000;
+            background: #ffcc00; color: #000; border: none; padding: 10px 15px;
+            border-radius: 20px; font-weight: bold; font-size: 13px; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Общая панель снизу */
+        .bottom-panel { 
+            width: 100%; height: 35%; background: #1e1e1e; padding: 20px; 
+            box-sizing: border-box; border-radius: 24px 24px 0 0; 
+            position: absolute; bottom: 0; z-index: 1000; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border-top: 2px solid #ffcc00;
+            display: none; /* Управляется через JS */
+        }
+        
+        .brand-title { margin: 0 0 10px 0; font-size: 22px; font-weight: 800; color: #ffcc00; text-align: center; letter-spacing: 1px; }
+        .role-indicator { font-size: 12px; text-align: center; color: #aaa; margin-bottom: 10px; text-transform: uppercase; }
+
+        /* Элементы пассажира */
+        .input-group { margin-bottom: 12px; }
+        .input-group input { 
+            width: 100%; padding: 12px 15px; background: #2d2d2d; border: 1px solid #444; 
+            border-radius: 12px; color: #fff; font-size: 14px; box-sizing: border-box; outline: none;
+        }
+        .btn-bac { 
+            width: 100%; padding: 14px; background: #ffcc00; border: none; 
+            border-radius: 12px; font-weight: bold; font-size: 16px; color: #000; cursor: pointer;
+        }
+
+        /* Элементы водителя (Радар заказов) */
+        .order-card {
+            background: #2d2d2d; border-radius: 12px; padding: 12px; border-left: 4px solid #ffcc00;
+            margin-top: 5px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .order-info { font-size: 14px; }
+        .btn-accept { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .no-orders { text-align: center; color: #888; font-style: italic; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <button id="role-toggle-btn" onclick="toggleRole()">РЕЖИМ: ПАССАЖИР</button>
+
+    <div id="map"></div>
+
+    <div id="passenger-panel" class="bottom-panel" style="display: block;">
+        <div class="brand-title">БАЦ ТАКСИ</div>
+        <div class="role-indicator">Заказ поездки</div>
+        <div class="input-group">
+            <input type="text" id="from-address" placeholder="Откуда (Поиск GPS...)" readonly>
+        </div>
+        <div class="input-group">
+            <input type="text" id="to-address" placeholder="Кликните на карту, куда ехать" readonly>
+        </div>
+        <button class="btn-bac" id="order-btn" onclick="passengerOrder()">Вызвать БАЦ</button>
+    </div>
+
+    <div id="driver-panel" class="bottom-panel">
+        <div class="brand-title">БАЦ РАДАР</div>
+        <div class="role-indicator">Кабинет Водителя (В сети)</div>
+        
+        <div id="orders-list">
+            <div class="no-orders">Поиск заказов поблизости...</div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        // Подключаемся к серверу. 
+// Пока тестируем на ПК — пишем локальный адрес. Когда выложим в сеть — поменяем на бесплатную ссылку сервера.
+const socket = io('http://localhost:3000'); 
+
+// Слушаем обновления заказов для водителя
+socket.on('order_list_update', (orders) => {
+    if (currentRole !== "driver") return;
+    const ordersList = document.getElementById('orders-list');
+    
+    if (orders.length === 0) {
+        ordersList.innerHTML = '<div class="no-orders">Поиск заказов поблизости...</div>';
+        return;
+    }
+
+    ordersList.innerHTML = ''; // Очищаем радар
+    orders.forEach(order => {
+        ordersList.innerHTML += `
+            <div class="order-card">
+                <div class="order-info">
+                    <strong>📦 Заказ #${order.id}</strong><br>
+                    Маршрут: ${order.distance} км<br>
+                    <small>Координаты подачи: ${order.from.join(', ')}</small>
+                </div>
+                <button class="btn-accept" onclick="acceptLiveOrder(${order.id})">Принять</button>
+            </div>
+        `;
+    });
+});
+
+// Слушаем ответ для пассажира, что водитель принял заказ
+socket.on('order_accepted_by_driver', (data) => {
+    alert(`🎉 Машина выехала! Водитель принял ваш заказ. Ожидайте.`);
+});
+
+// Функция для водителя — принять реальный заказ
+function acceptLiveOrder(orderId) {
+    socket.emit('accept_order', { orderId: orderId });
+}
+        tg.expand();
+
+        let currentRole = "passenger"; // Изначально все заходят как пассажиры
+        let userLat = 52.2855;
+        let userLon = 76.9410;
+
+        // Инициализация карты Leaflet
+        const map = L.map('map', { zoomControl: false }).setView([userLat, userLon], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let userMarker = L.marker([userLat, userLon]).addTo(map).bindPopup('Вы здесь').openPopup();
+        let routeLine = null;
+
+        // Геолокация
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                userLat = position.coords.latitude;
+                userLon = position.coords.longitude;
+                map.setView([userLat, userLon], 15);
+                userMarker.setLatLng([userLat, userLon]);
+                document.getElementById('from-address').value = `Моя позиция (${userLat.toFixed(4)}, ${userLon.toFixed(4)})`;
+            });
+        }
+
+        // Клик по карте (работает только в режиме пассажира)
+        map.on('click', async function(e) {
+            if (currentRole !== "passenger") return; // Водитель не может кликать маршрут
+
+            const toLat = e.latlng.lat;
+            const toLon = e.latlng.lng;
+            document.getElementById('to-address').value = `Куда: ${toLat.toFixed(4)}, ${toLon.toFixed(4)}`;
+
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${toLon},${toLat}?overview=full&geometries=geojson`;
+            try {
+                const response = await fetch(osrmUrl);
+                const data = await response.json();
+                if (data.routes && data.routes.length > 0) {
+                    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
+                    
+                    if (routeLine) map.removeLayer(routeLine);
+                    routeLine = L.polyline(coords, { color: '#ffcc00', weight: 5 }).addTo(map);
+                    map.fitBounds(routeLine.getBounds());
+                    
+                    document.getElementById('order-btn').innerText = `Заказать БАЦ (${distanceKm} км)`;
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        // Функция переключения роли Пассажир <-> Водитель
+        function toggleRole() {
+    const btn = document.getElementById('role-toggle-btn');
+    const passPanel = document.getElementById('passenger-panel');
+    const drivPanel = document.getElementById('driver-panel');
+
+    if (currentRole === "passenger") {
+        currentRole = "driver";
+        btn.innerText = "РЕЖИМ: ВОДИТЕЛЬ";
+        btn.style.background = "#28a745";
+        btn.style.color = "#fff";
+        passPanel.style.display = "none";
+        drivPanel.style.display = "block";
+        if (routeLine) map.removeLayer(routeLine);
+        
+        // Говорим серверу, что водитель зашел в радар и готов принимать заказы
+        socket.emit('driver_ready');
+    } else {
+        currentRole = "passenger";
+        btn.innerText = "РЕЖИМ: ПАССАЖИР";
+        btn.style.background = "#ffcc00";
+        btn.style.color = "#000";
+        passPanel.style.display = "block";
+        drivPanel.style.display = "none";
+    }
+}
+
+        // Симуляция появления заказа на экране водителя
+        function simulateIncomingOrder() {
+            if (currentRole !== "driver") return;
+            const ordersList = document.getElementById('orders-list');
+            ordersList.innerHTML = `
+                <div class="order-card">
+                    <div class="order-info">
+                        <strong>📦 Заказ #12</strong><br>
+                        Дистанция: ~3.4 км<br>
+                        <small>Подача: в 200 метрах от вас</small>
+                    </div>
+                    <button class="btn-accept" onclick="acceptOrder()">Принять</button>
+                </div>
+            `;
+        }
+
+        function acceptOrder() {
+            alert("Вы приняли заказ! Маршрут построен (Бэкенд свяжет вас в следующем шаге).");
+        }
+
+        function passengerOrder() {
+    const toAddr = document.getElementById('to-address').value;
+    if(!toAddr.includes("Куда")) {
+        alert("Выберите точку на карте куда ехать!");
+        return;
+    }
+
+    // Извлекаем километры из текста кнопки заказа
+    const btnText = document.getElementById('order-btn').innerText;
+    const distance = btnText.match(/[\d.]+/) ? btnText.match(/[\d.]+/)[0] : "0";
+
+    // Отправляем реальный заказ на бэкенд-сервер!
+    socket.emit('create_order', {
+        from: [userLat, userLon],
+        to: document.getElementById('to-address').value.replace('Куда: ', '').split(',').map(Number),
+        distance: distance
+    });
+
+    alert("Заказ опубликован в БАЦ Радар! Переключитесь в режим Водителя (сверху кнопка), чтобы увидеть его.");
+}
+    </script>
+</body>
+</html>
