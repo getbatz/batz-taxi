@@ -664,8 +664,8 @@
         // 2. Жесткая установка маркера по координатам из OSM
         function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
-            
-            // Записываем адрес в поле
+            isAutoPanning = true; // Блокируем обновление от карты
+
             document.getElementById(ctx + '-address').value = name;
             document.getElementById(ctx + '-suggestions').style.display = 'none';
 
@@ -673,14 +673,17 @@
             if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } 
             else { geoLatB = lat; geoLonB = lon; }
 
-            // Перемещаем карту и наш CSS-маркер в точку
+            // Перемещаем карту
             map.setView([lat, lon], 17);
             document.getElementById('pin-address-bubble').innerText = name;
             
-            // Если есть маршрут — перерисовываем
+            // Если маршрут есть — обновляем его
             if (typeof rebuildRouteLine === 'function') {
                 rebuildRouteLine();
             }
+
+            // Разблокировка через 1 секунду
+            setTimeout(() => { isAutoPanning = false; }, 1000);
         }
 
 async function resolveCoordinatesToAddress(lat, lon) {
