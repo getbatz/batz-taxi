@@ -620,42 +620,53 @@
             document.getElementById(ctx + '-address').classList.add('active-focus');
         }
 
-// 1. Поиск строго через OpenStreetMap (Photon API)
         async function handleManualSearchInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
-            const text = document.getElementById(ctx + '-address').value.trim();
+            const text = document.getElementById(ctx + '-address').value.toLowerCase().trim();
             const sug = document.getElementById(ctx + '-suggestions');
             
-            if(text.length < 3) { sug.style.display = 'none'; return; }
+            if(text.length < 2) { sug.style.display = 'none'; return; }
 
-            try {
-                // Ищем по Щербакты (Шарбакты) с ограничением по региону
-                const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(text + ', Щербакты')}&lat=52.489&lon=78.161&lang=ru&limit=5`;
-                const response = await fetch(url);
-                const data = await response.json();
+            sug.innerHTML = '';
+            sug.style.display = 'block';
 
-                sug.innerHTML = '';
-                if (data.features && data.features.length > 0) {
-                    data.features.forEach(f => {
-                        const coords = f.geometry.coordinates; // [lon, lat]
-                        const props = f.properties;
-                        // Формируем красивый адрес: Улица + Дом
-                        const addressName = `${props.street || props.name || ''} ${props.housenumber || ''}`.trim();
-                        
-                        if (addressName) {
-                            sug.innerHTML += `
-                                <div class="suggestion-row" onclick="applySelectedAddressTarget('${addressName}', ${coords[1]}, ${coords[0]})">
-                                    📍 ${addressName}
-                                </div>`;
-                        }
-                    });
-                    sug.style.display = 'block';
-                } else {
-                    sug.style.display = 'none';
+            // 1. Поиск по твоему локальному словарю (Гарантированно работает!)
+            const localMatches = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
+            
+            if (localMatches.length > 0) {
+                localMatches.forEach(item => {
+                    sug.innerHTML += `
+                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${item.name}', ${item.lat}, ${item.lon})">
+                            📍 ${item.name}
+                        </div>`;
+                });
+            } 
+            // 2. Если в локальной базе ничего нет, пробуем искать в сети (OSM)
+            else {
+                try {
+                    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(text + ', Щербакты')}&lat=52.489&lon=78.161&lang=ru&limit=5`;
+                    const res = await fetch(url);
+                    const d = await res.json();
+                    
+                    if (d.features && d.features.length > 0) {
+                        d.features.forEach(f => {
+                            const coords = f.geometry.coordinates; // [lon, lat]
+                            const props = f.properties;
+                            const addr = `${props.street || props.name || ''} ${props.housenumber || ''}`.trim();
+                            if(addr) {
+                                sug.innerHTML += `
+                                    <div class="suggestion-row" onclick="applySelectedAddressTarget('${addr}', ${coords[1]}, ${coords[0]})">
+                                        🌐 ${addr}
+                                    </div>`;
+                            }
+                        });
+                    } else {
+                        sug.innerHTML = `<div class="suggestion-row">Адресов не найдено</div>`;
+                    }
+                } catch(e) {
+                    console.error("Ошибка сети:", e);
                 }
-            } catch (e) {
-                console.error("Ошибка поиска OSM:", e);
             }
         }
 
