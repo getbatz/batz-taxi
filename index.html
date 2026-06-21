@@ -622,119 +622,48 @@
 // Флаг-предохранитель, чтобы автоматическое движение карты не сбивало выбранный адрес
         let isAutoPanning = false;
 
-        // Ручной ввод с живыми подсказками (сначала локальная база, затем глобальный поиск)
-        async function handleManualSearchInput(ctx) {
+// 1. Поиск только по твоей базе (надежно и быстро)
+        function handleManualSearchInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
-            const originalText = document.getElementById(ctx + '-address').value.trim();
-            const text = originalText.toLowerCase();
+            const text = document.getElementById(ctx + '-address').value.toLowerCase().trim();
             const sug = document.getElementById(ctx + '-suggestions');
             
             if(text.length < 1) { sug.style.display = 'none'; return; }
 
             sug.innerHTML = '';
+            // Ищем только по локальному словарю - это 100% гарантия координат
+            const matches = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
 
-            // 1. Фильтруем локальные точки Шарбакты из словаря
-            const localMatches = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
-            localMatches.forEach((item, index) => {
-                sug.innerHTML += `
-                    <div class="suggestion-row" onclick="applySelectedAddressTarget(this)" data-name="${item.name}" data-lat="${item.lat}" data-lon="${item.lon}">
-                        <span>${item.type === 'poi' ? '🏢' : '📍'}</span>
-                        <div>${item.name}</div>
-                    </div>`;
-            });
-
-            // 2. Подгружаем реальные адреса из глобальной сети (при вводе от 2-х символов)
-            if (text.length >= 2) {
-                try {
-                    // Формируем умный поисковый запрос: добавляем "Казахстан Шарбакты", чтобы отсечь другие города
-                    const searchQuery = `${originalText}, Казахстан, Шарбакты`;
-                    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&lang=ru&limit=6`);
-                    const d = await r.json();
-                    
-                    if (d.features && d.features.length > 0) {
-                        d.features.forEach(f => {
-                            const props = f.properties;
-                            
-                            // Проверяем, что адрес относится к нашей области (Павлодарская область / Шарбакты / Щербакты)
-                            const state = (props.state || "").toLowerCase();
-                            const county = (props.county || "").toLowerCase();
-                            const city = (props.city || "").toLowerCase();
-                            const district = (props.district || "").toLowerCase();
-                            
-                            const isLocal = state.includes("павлодар") || state.includes("pavlodar") || 
-                                            county.includes("щербакт") || county.includes("шарбакт") ||
-                                            city.includes("шарбакт") || city.includes("щербакт") ||
-                                            district.includes("щербакт") || district.includes("шарбакт");
-                            
-                            if (!isLocal) return; // Пропускаем адреса из чужих областей и стран
-
-                            // Собираем название: Улица + Дом
-                            let nameStr = props.street || props.name || "";
-                            if (props.street && props.housenumber) {
-                                nameStr = `${props.street} ${props.housenumber}`;
-                            }
-                            
-                            if (!nameStr) return;
-                            
-                            // Убираем лишние мусорные приставки из строки
-                            nameStr = nameStr.replace(/Шарбахты/g, "").replace(/Щербакты/g, "").replace(/,$/g, "").trim();
-
-                            // Защита от дублирования с локальной базой
-                            if (localMatches.some(m => m.name.toLowerCase() === nameStr.toLowerCase())) return;
-
-                            const lon = f.geometry.coordinates[0];
-                            const lat = f.geometry.coordinates[1];
-
-                            // Безопасная передача данных через data-атрибуты (кавычки в названии больше ничего не сломают!)
-                            sug.innerHTML += `
-                                <div class="suggestion-row" onclick="applySelectedAddressTarget(this)" data-name="${nameStr}" data-lat="${lat}" data-lon="${lon}">
-                                    <span>🌐</span>
-                                    <div>${nameStr}</div>
-                                </div>`;
-                        });
-                    }
-                } catch (e) {
-                    console.error("Ошибка сети при получении координат:", e);
-                }
-            }
-
-            // Если ничего не нашлось во всех источниках
-            if(sug.innerHTML === '') {
-                sug.innerHTML = `<div class="suggestion-row" style="color:#666;">${currentLocale==='ru'?'Адрес не найден':'Мекенжай табылмады'}</div>`;
+            if(matches.length === 0) {
+                sug.innerHTML = `<div class="suggestion-row" style="color:#666;">Адрес не найден в базе</div>`;
+            } else {
+                matches.forEach(item => {
+                    sug.innerHTML += `
+                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${item.name}', ${item.lat}, ${item.lon})">
+                            <span>📍</span> ${item.name}
+                        </div>`;
+                });
             }
             sug.style.display = 'block';
         }
 
-        function applySelectedAddressTarget(element) {
+        // 2. Выбор адреса - только центрирование карты без прыжков
+        function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
-            
-            // Читаем безопасные данные из дата-атрибутов кликнутого элемента
-            const name = element.getAttribute('data-name');
-            const lat = parseFloat(element.getAttribute('data-lat'));
-            const lon = parseFloat(element.getAttribute('data-lon'));
-
-            if (!name || isNaN(lat) || isNaN(lon)) return;
-
-            // Включаем блокировку, чтобы карта при перемещении не перетерла адрес старыми координатами центра
-            isAutoPanning = true;
-
             document.getElementById(ctx + '-address').value = name;
             document.getElementById(ctx + '-suggestions').style.display = 'none';
-
+            
+            // Запоминаем координаты
             if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
-
-            // Перемещаем карту строго в центр выбранной локации
-            map.setView([lat, lon], 16);
-
-            // Сразу прописываем адрес в бабл над маркером
+            
+            // Плавный переход в нужную точку
+            map.setView([lat, lon], 17); // Увеличили зум до 17 для точности
             document.getElementById('pin-address-bubble').innerText = name;
             
             rebuildRouteLine();
-
-            // Снимаем блокировку только после завершения анимации перемещения карты
-            setTimeout(() => { isAutoPanning = false; }, 800);
         }
+        
         async function resolveCoordinatesToAddress(lat, lon) {
             if(isOrderProcessing) return;
             if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
