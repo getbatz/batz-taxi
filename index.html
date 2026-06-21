@@ -653,7 +653,14 @@
 
             if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
 
-            map.panTo([lat, lon]);
+            // Перемещаем фокус карты на выбранную точку
+            map.setView([lat, lon], 16);
+
+            // ИСПРАВЛЕНО: Принудительно перемещаем маркер в выбранные координаты, чтобы он не оставался на старом месте
+            if (typeof mainPin !== 'undefined' && mainPin) {
+                mainPin.setLatLng([lat, lon]);
+            }
+
             document.getElementById('pin-address-bubble').innerText = name;
             rebuildRouteLine();
         }
