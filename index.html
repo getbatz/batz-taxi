@@ -664,64 +664,22 @@
             rebuildRouteLine();
         }
         
-        async function resolveCoordinatesToAddress(lat, lon) {
+async function resolveCoordinatesToAddress(lat, lon) {
             if(isOrderProcessing) return;
             if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
 
-            // 1. Сначала пытаемся получить максимальную точность (Улица + Дом) через международный сервис OpenStreetMap
-            try {
-                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ru`);
-                const d = await r.json();
-                if (d && d.address) {
-                    const road = d.address.road || d.address.pedestrian || "";
-                    const house = d.address.house_number || "";
-                    
-                    // Если карта знает точную улицу и дом (например, Матросова, 8) — сразу пишем их
-                    if (road && house) {
-                        const exactAddress = `${road}, ${house}`.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = exactAddress;
-                        document.getElementById(activeInputContext + '-address').value = exactAddress;
-                        rebuildRouteLine();
-                        return; // Успешно вышли, локальная база не будет перебивать адрес
-                    }
-                }
-            } catch(e) {
-                console.error("Запрос к Nominatim не удался или превышен лимит, используем резерв");
-            }
-
-            // 2. Если точный дом на карте не размечен, ищем совпадение в твоей локальной базе Шарбакты
+            // Поиск в базе
             let closest = null, minD = Infinity;
             sharbaktyGeoDictionary.forEach(p => {
                 let d = Math.pow(p.lat - lat, 2) + Math.pow(p.lon - lon, 2);
                 if(d < minD) { minD = d; closest = p; }
             });
 
-            // ИСПРАВЛЕНО: Уменьшили радиус привязки до ~25-30 метров (0.0000001 вместо 0.00002).
-            // Теперь маркер привяжется к "Больнице" или "Акимату" только если поставить его вплотную к ним.
-            if(closest && minD < 0.0000001) {
+            // Если ближе 50 метров (0.0000005) — привязываем, иначе просто "Точка на карте"
+            if(closest && minD < 0.0000005) {
                 document.getElementById('pin-address-bubble').innerText = closest.name;
-                document.getElementById(activeInputContext + '-address').value = closest.name;
             } else {
-                // 3. Если и рядом с объектами базы ничего нет, берем резервный Photon, но теперь Обязательно с номером дома
-                try {
-                    const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon}&lat=${lat}`);
-                    const d = await r.json();
-                    if(d.features && d.features.length > 0) {
-                        const props = d.features[0].properties;
-                        let st = props.street || props.name || "Точка на карте";
-                        
-                        // ИСПРАВЛЕНО: Если Photon вернул и улицу, и номер дома, склеиваем их вместе
-                        if (props.street && props.housenumber) {
-                            st = `${props.street}, ${props.housenumber}`;
-                        }
-                        
-                        st = st.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = st;
-                        document.getElementById(activeInputContext + '-address').value = st;
-                    }
-                } catch(e) {
-                    document.getElementById('pin-address-bubble').innerText = "Точка на карте";
-                }
+                document.getElementById('pin-address-bubble').innerText = "Точка на карте";
             }
             rebuildRouteLine();
         }
