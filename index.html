@@ -620,8 +620,11 @@
             document.getElementById(ctx + '-address').classList.add('active-focus');
         }
 
-        // Ручной ввод с живыми подсказками без координатных смещений
-        function handleManualSearchInput(ctx) {
+        // Флаг-предохранитель, чтобы автоматическое движение карты не сбивало выбранный адрес
+        let isAutoPanning = false;
+
+        // Ручной ввод с живыми подсказками (сначала локальная база, затем глобальный поиск)
+        async function handleManualSearchInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
             const text = document.getElementById(ctx + '-address').value.toLowerCase().trim();
@@ -629,42 +632,80 @@
             
             if(text.length < 1) { sug.style.display = 'none'; return; }
 
-            const res = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
             sug.innerHTML = '';
 
-            if(res.length === 0) {
+            // 1. Фильтруем локальные точки Шарбакты
+            const localMatches = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
+            localMatches.forEach(item => {
+                sug.innerHTML += `
+                    <div class="suggestion-row" onclick="applySelectedAddressTarget('${item.name}', ${item.lat}, ${item.lon})">
+                        <span>${item.type === 'poi' ? '🏢' : '📍'}</span>
+                        <div>${item.name}</div>
+                    </div>`;
+            });
+
+            // 2. Если введено больше 3-х символов, подтягиваем реальные адреса из сети (Photon/OSM)
+            if (text.length >= 3) {
+                try {
+                    // Фокусируем поиск вокруг координат Шарбакты (52.489, 78.161), чтобы выводились местные улицы
+                    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&lat=52.4894&lon=78.1612&lang=ru&limit=5`);
+                    const d = await r.json();
+                    if (d.features && d.features.length > 0) {
+                        d.features.forEach(f => {
+                            const props = f.properties;
+                            // Формируем красивую строку: Улица, Дом (если есть)
+                            let nameStr = props.street || props.name || "";
+                            if (props.street && props.housenumber) {
+                                nameStr = `${props.street}, ${props.housenumber}`;
+                            }
+                            if (!nameStr) return;
+
+                            // Исключаем дубликаты с локальной базой
+                            if (localMatches.some(m => m.name.toLowerCase() === nameStr.toLowerCase())) return;
+
+                            const lon = f.geometry.coordinates[0];
+                            const lat = f.geometry.coordinates[1];
+
+                            sug.innerHTML += `
+                                <div class="suggestion-row" onclick="applySelectedAddressTarget('${nameStr}', ${lat}, ${lon})">
+                                    <span>🌐</span>
+                                    <div>${nameStr}</div>
+                                </div>`;
+                        });
+                    }
+                } catch (e) {
+                    console.error("Ошибка автокомплита из сети", e);
+                }
+            }
+
+            if(sug.innerHTML === '') {
                 sug.innerHTML = `<div class="suggestion-row" style="color:#666;">${currentLocale==='ru'?'Адрес не найден':'Мекенжай табылмады'}</div>`;
-            } else {
-                res.forEach(item => {
-                    sug.innerHTML += `
-                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${item.name}', ${item.lat}, ${item.lon})">
-                            <span>${item.type === 'poi' ? '🏢' : '📍'}</span>
-                            <div>${item.name}</div>
-                        </div>`;
-                });
             }
             sug.style.display = 'block';
         }
 
         function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
+            
+            // Включаем блокировку, чтобы событие moveend не переписало наш адрес в процессе анимации карты
+            isAutoPanning = true;
+
             document.getElementById(ctx + '-address').value = name;
             document.getElementById(ctx + '-suggestions').style.display = 'none';
 
             if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
 
-            // Перемещаем фокус карты на выбранную точку
+            // Двигаем карту так, чтобы её центр (где прибит твой маркер) встал точно на координаты адреса
             map.setView([lat, lon], 16);
 
-            // ИСПРАВЛЕНО: Принудительно перемещаем маркер в выбранные координаты, чтобы он не оставался на старом месте
-            if (typeof mainPin !== 'undefined' && mainPin) {
-                mainPin.setLatLng([lat, lon]);
-            }
-
+            // Сразу жестко прописываем текст в бабл над центральным маркером
             document.getElementById('pin-address-bubble').innerText = name;
+            
             rebuildRouteLine();
-        }
 
+            // Снимаем блокировку после завершения перемещения карты
+            setTimeout(() => { isAutoPanning = false; }, 600);
+        }
         async function resolveCoordinatesToAddress(lat, lon) {
             if(isOrderProcessing) return;
             if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
