@@ -439,11 +439,17 @@
     </div>
 
     <script>
+        // Флаги и маркеры фиксации маршрута (Логика а-ля Яндекс)
+        let isRouteFixed = false;
+        let startMarker = null;
+        let endMarker = null;
+        let isAutoPanning = false;
+
         const tg = window.Telegram.WebApp;
         tg.expand();
         if(tg.enableClosingConfirmation) tg.enableClosingConfirmation();
 
-        // 1. МУЛЬТИЯЗЫЧНЫЙ СЛОВАРЬ (Полная локализация всех окон и алертов)
+        // 1. МУЛЬТИЯЗЫЧНЫЙ СЛОВАРЬ
         const i18n = {
             ru: {
                 rolePassenger: "Пассажир", roleDriver: "Водитель", menuPassenger: "Режим Пассажира",
@@ -491,7 +497,7 @@
 
         let currentLocale = localStorage.getItem('batz_lang') || 'ru';
 
-        // 2. БАЗА ДАННЫХ АВТОМОБИЛЕЙ (16 марок и каскадные модели)
+        // 2. БАЗА ДАННЫХ АВТОМОБИЛЕЙ
         const carAutomotiveDatabase = {
             "Audi": ["100", "80", "A4", "A6", "A8", "Q5", "Q7"],
             "BMW": ["3-Series", "5-Series", "7-Series", "X3", "X5", "X6"],
@@ -511,37 +517,7 @@
             "Renault": ["Logan", "Duster", "Sandero", "Megane", "Fluence"]
         };
 
-        // 3. ГЕОИНФОРМАЦИОННАЯ КАРТА ШАРБАКТЫ (Точные фиксированные координаты)
-        const sharbaktyGeoDictionary = [
-            { name: "Районная Больница", lat: 52.49310, lon: 78.15810, type: "poi" },
-            { name: "Казпочта (Почта)", lat: 52.48850, lon: 78.16320, type: "poi" },
-            { name: "Халык Банк (Halyk Bank)", lat: 52.48910, lon: 78.16200, type: "poi" },
-            { name: "Районный Акимат", lat: 52.48750, lon: 78.16450, type: "poi" },
-            { name: "ЦОН", lat: 52.49050, lon: 78.15950, type: "poi" },
-            { name: "Школа №1", lat: 52.49400, lon: 78.16400, type: "poi" },
-            { name: "Школа №2", lat: 52.48450, lon: 78.15500, type: "poi" },
-            { name: "Автостанция Шарбакты", lat: 52.48650, lon: 78.15400, type: "poi" },
-            { name: "Парк Победы", lat: 52.48900, lon: 78.16000, type: "poi" },
-            { name: "Супермаркет Сарыарка", lat: 52.49000, lon: 78.16250, type: "poi" },
-            { name: "ул. Матросова 1", lat: 52.49100, lon: 78.16010, type: "street" },
-            { name: "ул. Матросова 5", lat: 52.49130, lon: 78.16050, type: "street" },
-            { name: "ул. Матросова 12", lat: 52.49220, lon: 78.16180, type: "street" },
-            { name: "ул. Матросова 25", lat: 52.49350, lon: 78.16330, type: "street" },
-            { name: "ул. Ленина 2", lat: 52.48700, lon: 78.16100, type: "street" },
-            { name: "ул. Ленина 10", lat: 52.48800, lon: 78.16300, type: "street" },
-            { name: "ул. Ленина 15", lat: 52.48840, lon: 78.16420, type: "street" },
-            { name: "ул. Ленина 45", lat: 52.49000, lon: 78.16800, type: "street" },
-            { name: "ул. Мира 4", lat: 52.48950, lon: 78.15700, type: "street" },
-            { name: "ул. Мира 18", lat: 52.49120, lon: 78.15900, type: "street" },
-            { name: "ул. Советов 10", lat: 52.48500, lon: 78.16300, type: "street" },
-            { name: "ул. Советов 24", lat: 52.48620, lon: 78.16600, type: "street" },
-            { name: "ул. Чайковского 12", lat: 52.48300, lon: 78.15200, type: "street" },
-            { name: "ул. Чайковского 40", lat: 52.48550, lon: 78.15550, type: "street" },
-            { name: "ул. Гагарина 5", lat: 52.49500, lon: 78.15800, type: "street" },
-            { name: "ул. Гагарина 22", lat: 52.49750, lon: 78.16100, type: "street" }
-        ];
-
-        // 4. СОСТОЯНИЯ И СЕРВЕРНЫЕ КОНФИГУРАЦИИ
+        // 3. НАСТРОЙКИ СЕТИ И СОСТОЯНИЯ
         const socket = io('https://batz-taxi-backend.onrender.com');
         const userTgId = tg.initDataUnsafe?.user?.id || 777123999;
         const userFirstName = tg.initDataUnsafe?.user?.first_name || "Пользователь";
@@ -558,34 +534,38 @@
         let routePolyline = null, liveDriverMarker = null;
         let isOrderProcessing = false;
 
-        // Конфигурации админа
+        // Тарифы из памяти
         let cfgBasePrice = Number(localStorage.getItem('cfg_base')) || 250;
         let cfgPricePerKm = Number(localStorage.getItem('cfg_per_km')) || 90;
         let cfgWaitPrice = Number(localStorage.getItem('cfg_wait')) || 50;
         let cfgPromoCode = localStorage.getItem('cfg_promo') || "BATZ2026";
         let cfgPromoDiscount = Number(localStorage.getItem('cfg_discount')) || 10;
 
-        // Таймеры и счетчики
         let waitSeconds = 0, waitInterval = null, isPaidWait = false, paidAccumulated = 0;
 
-        // Локальное мокание базы данных для автономии
         let mockDriversDatabase = JSON.parse(localStorage.getItem('mock_drivers')) || [];
         let mockRidesHistoryLog = JSON.parse(localStorage.getItem('mock_rides')) || [
             { date: "21.06.2026 14:10", from: "ул. Матросова 12", to: "Районная Больница", cost: 250, driver: "Серик К.", status: "Успешно" }
         ];
 
-        // Инициализация интерактивной карты
+        // 4. ИНИЦИАЛИЗАЦИЯ КАРТЫ LEAFLET
         const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([geoLatA, geoLonA], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        map.on('movestart', () => { if(isOrderProcessing) return; document.getElementById('map-interactive-pin').classList.add('dragging'); });
-        map.on('moveend', () => {
-            if(isOrderProcessing) return;
-            document.getElementById('map-interactive-pin').classList.remove('dragging');
-            const c = map.getCenter();
-            resolveCoordinatesToAddress(c.lat, c.lng);
+        // События перемещения карты
+        map.on('movestart', () => { 
+            if(isOrderProcessing || isRouteFixed) return; 
+            document.getElementById('map-interactive-pin').classList.add('dragging'); 
         });
 
+        map.on('moveend', () => {
+            if(isOrderProcessing || isRouteFixed || isAutoPanning) return;
+            document.getElementById('map-interactive-pin').classList.remove('dragging');
+            const center = map.getCenter();
+            resolveCoordinatesToAddress(center.lat, center.lng);
+        });
+
+        // Языковая панель
         function changeSystemLanguage(lng) {
             currentLocale = lng;
             localStorage.setItem('batz_lang', lng);
@@ -597,7 +577,6 @@
                 if(i18n[lng][key]) el.innerText = i18n[lng][key];
             });
 
-            // Коррекция плейсхолдеров
             document.getElementById('from-address').placeholder = lng==='ru'?'Откуда едем?':lng==='kz'?'Қайдан жүреміз?':'Pickup point?';
             document.getElementById('to-address').placeholder = lng==='ru'?'Куда едем?':lng==='kz'?'Қайда жүреміз?':'Destination?';
             document.getElementById('cash-change-from').placeholder = lng==='ru'?'С какой суммы подготовить сдачу?':lng==='kz'?'Қай сомадан қайтарым керек?':'Change from what sum?';
@@ -612,114 +591,144 @@
             sh.style.display = sh.style.display === 'block' ? 'none' : 'block';
         }
 
+        // Фокусировка инпутов (Сброс фиксации маршрута для перевыбора точки)
         function focusAddressInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
+            
             document.getElementById('from-address').classList.remove('active-focus');
             document.getElementById('to-address').classList.remove('active-focus');
             document.getElementById(ctx + '-address').classList.add('active-focus');
+
+            // Переходим в режим редактирования (Убираем маршрут, возвращаем центральный прицел)
+            if (isRouteFixed) {
+                isRouteFixed = false;
+                if(routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+                clearRouteMarkers();
+                document.getElementById('map-interactive-pin').style.display = 'block';
+                
+                // Центрируем карту на редактируемой точке
+                const targetLat = ctx === 'from' ? geoLatA : (geoLatB || geoLatA);
+                const targetLon = ctx === 'from' ? geoLonA : (geoLonB || geoLonA);
+                map.setView([targetLat, targetLon], 16);
+            }
         }
 
-        // Ручной ввод с живыми подсказками без координатных смещений
-        function handleManualSearchInput(ctx) {
+        // ЖИВОЙ ПОИСК АДРЕСОВ (Nominatim)
+        async function handleManualSearchInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
-            const text = document.getElementById(ctx + '-address').value.toLowerCase().trim();
+            const text = document.getElementById(ctx + '-address').value.trim();
             const sug = document.getElementById(ctx + '-suggestions');
             
-            if(text.length < 1) { sug.style.display = 'none'; return; }
+            if(text.length < 2) { sug.style.display = 'none'; return; }
 
-            const res = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
-            sug.innerHTML = '';
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1&accept-language=ru`;
+                const response = await fetch(url);
+                const data = await response.json();
 
-            if(res.length === 0) {
-                sug.innerHTML = `<div class="suggestion-row" style="color:#666;">${currentLocale==='ru'?'Адрес не найден':'Мекенжай табылмады'}</div>`;
-            } else {
-                res.forEach(item => {
+                sug.innerHTML = '';
+                data.forEach(item => {
+                    const addr = item.address;
+                    const street = addr.road || addr.pedestrian || addr.residential || "";
+                    const house = addr.house_number || "";
+                    const displayName = street ? `улица ${street}${house ? ', ' + house : ''}` : item.display_name.split(',')[0];
+                    
                     sug.innerHTML += `
-                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${item.name}', ${item.lat}, ${item.lon})">
-                            <span>${item.type === 'poi' ? '🏢' : '📍'}</span>
-                            <div>${item.name}</div>
+                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
+                            📍 ${displayName}
                         </div>`;
                 });
-            }
-            sug.style.display = 'block';
+                sug.style.display = match.length ? 'block' : 'none';
+                sug.style.display = 'block';
+            } catch (e) { console.error(e); }
         }
 
+        // ВЫБОР АДРЕСА ИЗ ПОДСКАЗОК
         function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
+            isAutoPanning = true; 
+
             document.getElementById(ctx + '-address').value = name;
             document.getElementById(ctx + '-suggestions').style.display = 'none';
 
-            if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
+            if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } 
+            else { geoLatB = lat; geoLonB = lon; }
 
-            map.panTo([lat, lon]);
+            map.setView([lat, lon], 17);
             document.getElementById('pin-address-bubble').innerText = name;
-            rebuildRouteLine();
+            
+            setTimeout(() => { 
+                isAutoPanning = false; 
+                if (geoLatA && geoLatB) {
+                    isRouteFixed = true;
+                    rebuildRouteLine();
+                }
+            }, 600);
         }
 
+        // ОПРЕДЕЛЕНИЕ АДРЕСА ПО ПЕРЕМЕЩЕНИЮ КАРТЫ
         async function resolveCoordinatesToAddress(lat, lon) {
-            if(isOrderProcessing) return;
-            if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
+            if (isRouteFixed || isAutoPanning) return;
+            
+            if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } 
+            else { geoLatB = lat; geoLonB = lon; }
 
-            // 1. Сначала пытаемся получить максимальную точность (Улица + Дом) через международный сервис OpenStreetMap
             try {
-                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ru`);
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=ru`);
                 const d = await r.json();
                 if (d && d.address) {
-                    const road = d.address.road || d.address.pedestrian || "";
+                    const street = d.address.road || d.address.pedestrian || "";
                     const house = d.address.house_number || "";
-                    
-                    // Если карта знает точную улицу и дом (например, Матросова, 8) — сразу пишем их
-                    if (road && house) {
-                        const exactAddress = `${road}, ${house}`.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = exactAddress;
-                        document.getElementById(activeInputContext + '-address').value = exactAddress;
-                        rebuildRouteLine();
-                        return; // Успешно вышли, локальная база не будет перебивать адрес
-                    }
-                }
-            } catch(e) {
-                console.error("Запрос к Nominatim не удался или превышен лимит, используем резерв");
-            }
-
-            // 2. Если точный дом на карте не размечен, ищем совпадение в твоей локальной базе Шарбакты
-            let closest = null, minD = Infinity;
-            sharbaktyGeoDictionary.forEach(p => {
-                let d = Math.pow(p.lat - lat, 2) + Math.pow(p.lon - lon, 2);
-                if(d < minD) { minD = d; closest = p; }
-            });
-
-            // ИСПРАВЛЕНО: Уменьшили радиус привязки до ~25-30 метров (0.0000001 вместо 0.00002).
-            // Теперь маркер привяжется к "Больнице" или "Акимату" только если поставить его вплотную к ним.
-            if(closest && minD < 0.0000001) {
-                document.getElementById('pin-address-bubble').innerText = closest.name;
-                document.getElementById(activeInputContext + '-address').value = closest.name;
-            } else {
-                // 3. Если и рядом с объектами базы ничего нет, берем резервный Photon, но теперь Обязательно с номером дома
-                try {
-                    const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon}&lat=${lat}`);
-                    const d = await r.json();
-                    if(d.features && d.features.length > 0) {
-                        const props = d.features[0].properties;
-                        let st = props.street || props.name || "Точка на карте";
+                    if(street) {
+                        const res = `улица ${street}${house ? ', ' + house : ''}`;
+                        document.getElementById('pin-address-bubble').innerText = res;
+                        document.getElementById(activeInputContext + '-address').value = res;
                         
-                        // ИСПРАВЛЕНО: Если Photon вернул и улицу, и номер дома, склеиваем их вместе
-                        if (props.street && props.housenumber) {
-                            st = `${props.street}, ${props.housenumber}`;
+                        // Если в процессе перетаскивания заполнились обе точки — фиксируем маршрут
+                        if(geoLatA && geoLatB && document.getElementById('to-address').value !== '') {
+                            isRouteFixed = true;
+                            rebuildRouteLine();
                         }
-                        
-                        st = st.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = st;
-                        document.getElementById(activeInputContext + '-address').value = st;
+                        return;
                     }
-                } catch(e) {
-                    document.getElementById('pin-address-bubble').innerText = "Точка на карте";
                 }
-            }
-            rebuildRouteLine();
+            } catch(e) { console.error(e); }
+            
+            document.getElementById('pin-address-bubble').innerText = "Точка на карте";
         }
 
+        // УПРАВЛЕНИЕ МАРКЕРАМИ МАРШРУТА
+        function clearRouteMarkers() {
+            if(startMarker) map.removeLayer(startMarker);
+            if(endMarker) map.removeLayer(endMarker);
+            startMarker = null;
+            endMarker = null;
+        }
+
+        function updateMapMarkers() {
+            clearRouteMarkers();
+            if (isRouteFixed) {
+                // Прячем центральный прицел
+                document.getElementById('map-interactive-pin').style.display = 'none';
+                
+                // Создаем кастомные маркеры Старта и Финиша
+                const startIcon = L.divIcon({ html: '🚶', className: 'marker-start', iconSize: [30, 30], iconAnchor: [15, 15] });
+                const endIcon = L.divIcon({ html: '🏁', className: 'marker-end', iconSize: [30, 30], iconAnchor: [5, 25] });
+                
+                startMarker = L.marker([geoLatA, geoLonA], {icon: startIcon}).addTo(map);
+                endMarker = L.marker([geoLatB, geoLonB], {icon: endIcon}).addTo(map);
+
+                // Автоматически масштабируем карту, чтобы поместился весь маршрут
+                const group = new L.featureGroup([startMarker, endMarker]);
+                map.fitBounds(group.getBounds().pad(0.3));
+            } else {
+                document.getElementById('map-interactive-pin').style.display = 'block';
+            }
+        }
+
+        // ОТРИСОВКА ЛИНИИ ПУТИ И СЧЕТ ЦЕНЫ
         async function rebuildRouteLine() {
             if(!geoLatB || !geoLonB || isOrderProcessing) return;
             try {
@@ -732,15 +741,17 @@
                     if(routePolyline) map.removeLayer(routePolyline);
                     routePolyline = L.polyline(coords, { color: '#ffcc00', weight: 6, opacity: 0.85 }).addTo(map);
 
+                    // Расчет стоимости
                     if(routeDistanceMeters <= 1200) { rawPrice = cfgBasePrice; } 
                     else { rawPrice = cfgBasePrice + Math.round(((routeDistanceMeters - 1200) / 1000) * cfgPricePerKm); }
                     rawPrice = Math.round(rawPrice / 10) * 10;
                     
                     calculateFinalPriceDisplay();
+                    updateMapMarkers();
                 }
-            } catch(e){}
+            } catch(e) { console.error("Ошибка построения маршута OSRM:", e); }
         }
-
+        
         function calculateFinalPriceDisplay() {
             finalPrice = rawPrice;
             if(isPromoApplied) {
@@ -750,6 +761,7 @@
             document.getElementById('price-output-view').innerText = isPromoApplied ? txt + " (% PROMO)" : txt;
         }
 
+        // ПРОМОКОДЫ И ОПЛАТА
         function applyPromoCodeAction() {
             const val = document.getElementById('promo-input-field').value.toUpperCase().trim();
             if(val === cfgPromoCode) {
@@ -771,7 +783,7 @@
             document.getElementById('change-input-block').style.display = m==='cash'?'block':'none';
         }
 
-        // Автоформатирование масок ввода
+        // МАСКИ ВВОДА ДЛЯ РЕГИСТРАЦИИ
         document.getElementById('d-car-num').addEventListener('input', function(e) {
             let v = e.target.value.replace(/\s+/g, '').toUpperCase();
             if(v.length > 3 && v.length <= 6) v = v.slice(0,3) + ' ' + v.slice(3);
@@ -788,7 +800,7 @@
             e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '') + (x[4] ? '-' + x[4] : '');
         });
 
-        // Живой фильтр Марка / Модель машин
+        // АВТОКОМПЛИТ АВТОМОБИЛЕЙ
         function handleBrandAutocomplete() {
             const input = document.getElementById('d-car-brand-input');
             const val = input.value.trim().toLowerCase();
@@ -827,7 +839,7 @@
             document.getElementById('model-suggestions').style.display = 'none';
         }
 
-        // Логика Ролей и Профиля
+        // УПРАВЛЕНИЕ СЕССИЯМИ ПРОФИЛЕЙ И ОКОН
         function updateProfileHeaderUI() {
             if(myProfile) {
                 document.getElementById('sb-name').innerText = myProfile.name;
@@ -861,7 +873,7 @@
                     document.getElementById('admin-menu-item').classList.add('active');
                     switchVisiblePanel('panel-admin-dashboard');
                     renderAdminDashboardData();
-                } else { alert("Доступ заблокирован: неверный ключ авторизации!"); }
+                } else { alert("Доступ заблокирован!"); }
             }
         }
 
@@ -870,7 +882,7 @@
             document.getElementById(id).classList.add('active');
         }
 
-        // Жизненный цикл сессии
+        // Запуск интерфейса проверки сессии
         if(myProfile) {
             updateProfileHeaderUI();
             changeSystemLanguage(currentLocale);
@@ -889,9 +901,7 @@
         }
 
         function clearProfileLogout() {
-            localStorage.removeItem('batz_user_session');
-            localStorage.removeItem('mock_drivers');
-            localStorage.removeItem('mock_rides');
+            localStorage.clear();
             location.reload();
         }
 
@@ -904,7 +914,7 @@
             const bh = document.getElementById('d-bank-holder').value.trim();
 
             if(!carAutomotiveDatabase[b]) { document.getElementById('d-car-brand-input').classList.add('invalid-field'); return; }
-            if(!f || !m || num.length < 6 || bp.length < 10 || !bh) { alert("Заполните форму корректно согласно шаблонам!"); return; }
+            if(!f || !m || num.length < 6 || bp.length < 10 || !bh) { alert("Заполните форму корректно!"); return; }
 
             myProfile.driverData = { f, b, m, num, bp, bh, color: document.getElementById('d-car-color-select').value };
             myProfile.isDriverApplied = true;
@@ -912,7 +922,7 @@
             switchVisiblePanel('panel-driver-pending');
         }
 
-        // АДМИНИСТРАТИВНОЕ КРЫЛО (Полная модерация)
+        // АДМИНКА ПАНЕЛИ
         function switchAdminSubTab(sub) {
             document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('at-' + sub).classList.add('active');
@@ -934,7 +944,7 @@
                         Авто: <input type="text" id="aedit-brand" value="${myProfile.driverData.b}" style="width:70px;"> 
                               <input type="text" id="aedit-model" value="${myProfile.driverData.m}" style="width:70px;"><br>
                         Номер: <input type="text" id="aedit-num" value="${myProfile.driverData.num}"><br>
-                        <button class="btn-sub btn-green" onclick="adminApproveDriver()">Одобрить и Отправить СМС</button>
+                        <button class="btn-sub btn-green" onclick="adminApproveDriver()">Одобрить</button>
                     </div>`;
             } else { pDiv.innerHTML += '<div>Заявок нет</div>'; }
 
@@ -943,17 +953,17 @@
             if(myProfile?.isDriverApproved) {
                 aDiv.innerHTML += `
                     <div class="info-card" style="border-left-color:var(--success);">
-                        <strong>${myProfile.driverData.f}</strong> [${myProfile.driverData.b} (${myProfile.driverData.num})]<br>
+                        <strong>${myProfile.driverData.f}</strong> [${myProfile.driverData.b}]<br>
                         Баланс: <input type="number" id="aedit-wallet" value="${myProfile.wallet}" style="width:70px;"> ₸
-                        <button class="btn-sub btn-blue" onclick="adminUpdateWallet()">Обновить кошелек</button>
-                        <button class="btn-sub btn-red" onclick="adminFireDriver()">Удалить / Заблокировать</button>
+                        <button class="btn-sub btn-blue" onclick="adminUpdateWallet()">Обновить</button>
+                        <button class="btn-sub btn-red" onclick="adminFireDriver()">Заблокировать</button>
                     </div>`;
             } else { aDiv.innerHTML += '<div>Нет активных машин</div>'; }
 
             const lDiv = document.getElementById('admin-rides-history-log');
             lDiv.innerHTML = '';
             mockRidesHistoryLog.forEach(l => {
-                lDiv.innerHTML += `<div style="font-size:11px; border-bottom:1px solid #333; padding:4px 0;">${l.date} - ${l.from}➔${l.to} = <strong>${l.cost} ₸</strong> [${l.status}]</div>`;
+                lDiv.innerHTML += `<div style="font-size:11px; border-bottom:1px solid #333; padding:4px 0;">${l.date} - ${l.from}➔${l.to} = <strong>${l.cost} ₸</strong></div>`;
             });
         }
 
@@ -964,69 +974,56 @@
             myProfile.driverData.num = document.getElementById('aedit-num').value;
             myProfile.isDriverApproved = true;
             localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
-            alert("Уведомление: Благодарим, что вы присоединились к нам! Желаем вам продуктивной работы!");
+            alert("Благодарим за сотрудничество! Водитель активен.");
             renderAdminDashboardData();
         }
         function adminUpdateWallet() {
             myProfile.wallet = Number(document.getElementById('aedit-wallet').value);
             localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
-            alert("Кошелек водителя успешно скорректирован!");
+            alert("Баланс обновлен!");
         }
         function adminFireDriver() {
             myProfile.isDriverApproved = false;
             myProfile.isDriverApplied = false;
             localStorage.setItem('batz_user_session', JSON.stringify(myProfile));
-            alert("Водитель деактивирован.");
+            alert("Водитель удален.");
             renderAdminDashboardData();
         }
         function saveAdminTariffsSettings() {
             cfgBasePrice = Number(document.getElementById('cfg-base-price').value);
             cfgPricePerKm = Number(document.getElementById('cfg-per-km').value);
-            cfgWaitPrice = Number(document.getElementById('cfg-wait-price').value);
-            cfgPromoCode = document.getElementById('cfg-promocode').value.toUpperCase();
-            cfgPromoDiscount = Number(document.getElementById('cfg-promo-discount').value);
-
             localStorage.setItem('cfg_base', cfgBasePrice);
             localStorage.setItem('cfg_per_km', cfgPricePerKm);
-            localStorage.setItem('cfg_wait', cfgWaitPrice);
-            localStorage.setItem('cfg_promo', cfgPromoCode);
-            localStorage.setItem('cfg_discount', cfgPromoDiscount);
-            alert("Новая тарифная сетка применена!");
+            alert("Тарифная сетка сохранена!");
         }
 
-        // РАДАР И ЦИКЛ ПОЕЗДКИ
+        // СИМУЛЯЦИЯ И ТРЕКИНГ ЗАКАЗА (Workflow)
         function initiateOrderWorkflow() {
             if(!geoLatB) { alert(currentLocale==='ru'?'Укажите адрес прибытия!':'Пунктті таңдаңыз!'); return; }
             isOrderProcessing = true;
             switchVisiblePanel('panel-passenger-search');
             
-            // Имитация пассивного ожидания/очереди и автоматического принятия
             setTimeout(() => {
-                if(myProfile?.isDriverApproved) {
-                    alert(currentLocale==='ru'?'Заказ принят! Водитель заканчивает предыдущий заказ и направляется к вам.':'Тапсырыс қабылданды! Жүргізуші алдыңғы сапарды аяқтап, сізге қарай шығады.');
-                } else {
-                    alert(currentLocale==='ru'?'Машина найдена! К вам выехал водитель Александр на Toyota (123 AAA 14).':'Көлік табылды! Сізге Александр Toyota (123 AAA 14) көлігімен шықты.');
-                }
+                alert(currentLocale==='ru'?'Машина найдена! К вам выехал водитель Александр на Toyota.':'Көлік табылды! Сізге Александр Toyota көлігімен шықты.');
                 startTrackingSimulation();
-            }, 4000);
+            }, 3000);
         }
 
         function startTrackingSimulation() {
             switchVisiblePanel('panel-passenger-tracking');
             document.getElementById('track-main-status').innerText = currentLocale==='ru'?'Водитель едет к вам':'Жүргізуші келе жатыр';
-            document.getElementById('track-driver-card').innerHTML = `🚙 Toyota Camry | <strong>123 AAA 14</strong><br>ФИО: Александр В.`;
+            document.getElementById('track-driver-card').innerHTML = `🚙 Toyota Camry | <strong>123 AAA 14</strong><br>Водитель: Александр В.`;
             
-            liveDriverMarker = L.marker([geoLatA + 0.004, geoLonA + 0.004], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/3448/3448327.png', iconSize:[32,32]})}).addTo(map);
+            liveDriverMarker = L.marker([geoLatA + 0.003, geoLonA + 0.003], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/3448/3448327.png', iconSize:[32,32]})}).addTo(map);
 
-            // Анимация приближения маркера
             let steps = 0;
             let interval = setInterval(() => {
                 steps++;
-                let curLat = (geoLatA + 0.004) - (0.004 * (steps/5));
-                let curLon = (geoLonA + 0.004) - (0.004 * (steps/5));
-                liveDriverMarker.setLatLng([curLat, curLon]);
+                let curLat = (geoLatA + 0.003) - (0.003 * (steps/4));
+                let curLon = (geoLonA + 0.003) - (0.003 * (steps/4));
+                if(liveDriverMarker) liveDriverMarker.setLatLng([curLat, curLon]);
                 
-                if(steps >= 5) {
+                if(steps >= 4) {
                     clearInterval(interval);
                     triggerDriverArrivedStage();
                 }
@@ -1038,7 +1035,7 @@
             const banner = document.getElementById('wait-timer-block');
             banner.style.display = 'block';
             
-            waitSeconds = 180; // 3 минуты бесплатного ожидания
+            waitSeconds = 120; 
             isPaidWait = false;
             paidAccumulated = 0;
 
@@ -1047,47 +1044,41 @@
                     waitSeconds--;
                     let m = Math.floor(waitSeconds/60).toString().padStart(2,'0');
                     let s = (waitSeconds%60).toString().padStart(2,'0');
-                    banner.className = "wait-timer-banner";
                     banner.innerText = (currentLocale==='ru'?'Бесплатное ожидание: ':'Тегін күту: ') + `${m}:${s}`;
                     if(waitSeconds <= 0) { isPaidWait = true; }
                 } else {
                     waitSeconds++;
                     if(waitSeconds % 60 === 0) { paidAccumulated += cfgWaitPrice; }
-                    banner.className = "wait-timer-banner paid";
                     banner.innerText = (currentLocale==='ru'?'Платное ожидание: +':'Ақылы күту: +') + `${paidAccumulated} ₸`;
                 }
             }, 1000);
 
-            // Кнопка переключения для демонстрации (симуляция посадки пассажира через 8 сек)
             setTimeout(() => {
                 clearInterval(waitInterval);
                 banner.style.display = 'none';
                 startActiveTripTransit();
-            }, 8000);
+            }, 6000);
         }
 
         function startActiveTripTransit() {
             document.getElementById('track-main-status').innerText = currentLocale==='ru'?'В пути к точке назначения':'Поездка барысында';
-            map.dragging.disable(); // Блокировка карты при езде
-
             let steps = 0;
             let interval = setInterval(() => {
                 steps++;
-                let curLat = geoLatA + (geoLatB - geoLatA) * (steps/5);
-                let curLon = geoLonA + (geoLonB - geoLonA) * (steps/5);
-                liveDriverMarker.setLatLng([curLat, curLon]);
+                let curLat = geoLatA + (geoLatB - geoLatA) * (steps/4);
+                let curLon = geoLonA + (geoLonB - geoLonA) * (steps/4);
+                if(liveDriverMarker) liveDriverMarker.setLatLng([curLat, curLon]);
                 map.panTo([curLat, curLon]);
 
-                if(steps >= 5) {
+                if(steps >= 4) {
                     clearInterval(interval);
                     triggerInvoiceReceipt();
                 }
-            }, 2500);
+            }, 2000);
         }
 
         function triggerInvoiceReceipt() {
             switchVisiblePanel('panel-passenger-invoice');
-            map.dragging.enable();
             if(liveDriverMarker) map.removeLayer(liveDriverMarker);
 
             const total = finalPrice + paidAccumulated;
@@ -1095,25 +1086,19 @@
                         Откуда: ${document.getElementById('from-address').value}<br>
                         Куда: ${document.getElementById('to-address').value}<br>
                         Тариф: ${finalPrice} ₸<br>
-                        Платное ожидание: ${paidAccumulated} ₸<br>
+                        Ожидание: ${paidAccumulated} ₸<br>
                         <hr style="border-color:#444;">
                         К оплате: <strong style="color:var(--accent); font-size:16px;">${total} ₸</strong> [${chosenPayment.toUpperCase()}]`;
             
             if(chosenPayment !== 'cash') {
                 html += `<br><br><div style='background:#111; padding:8px; border-radius:8px;'>
-                    Переведите на Kaspi/Halyk:<br>
-                    <strong>+7 (707) 123-45-67</strong><br>Получатель: Александр В.
+                    Перевод Kaspi/Halyk:<br><strong>+7 (707) 123-45-67</strong><br>Александр В.
                 </div>`;
             }
             document.getElementById('invoice-details-block').innerHTML = html;
 
             mockRidesHistoryLog.unshift({
-                date: "Сегодня",
-                from: document.getElementById('from-address').value,
-                to: document.getElementById('to-address').value,
-                cost: total,
-                driver: "Александр В.",
-                status: "Успешно"
+                date: "Сегодня", from: document.getElementById('from-address').value, to: document.getElementById('to-address').value, cost: total, driver: "Александр В.", status: "Успешно"
             });
             localStorage.setItem('mock_rides', JSON.stringify(mockRidesHistoryLog));
         }
@@ -1126,11 +1111,12 @@
         function renderDriverRadarOrders() {
             document.getElementById('d-wallet-display').innerText = `${myProfile.wallet} ₸`;
             document.getElementById('stat-orders-count').innerText = myProfile.ordersCount;
-            document.getElementById('driver-orders-list-view').innerHTML = `<div style="text-align:center; color:#666; padding-top:20px;">Поиск свободных заказов по Шарбакты...</div>`;
+            document.getElementById('driver-orders-list-view').innerHTML = `<div style="text-align:center; color:#666; padding-top:20px;">Поиск свободных заказов...</div>`;
         }
 
         function abortRideSession() { location.reload(); }
 
+        // GPS СТАРТ ПРИЛОЖЕНИЯ
         function triggerGPS() {
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((p) => {
