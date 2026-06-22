@@ -622,38 +622,34 @@
 let isRouteFixed = false; // Блокировка пересчета после построения маршрута
 
         // ЖИВОЙ ПОИСК (срабатывает на каждый символ)
-        async function handleManualSearchInput(ctx) {
-            if(isOrderProcessing) return;
-            activeInputContext = ctx;
-            const text = document.getElementById(ctx + '-address').value.trim();
-            const sug = document.getElementById(ctx + '-suggestions');
+async function handleManualSearchInput(ctx) {
+    if(isOrderProcessing && isRouteFixed) return;
+    activeInputContext = ctx;
+    const text = document.getElementById(ctx + '-address').value.trim();
+    const sug = document.getElementById(ctx + '-suggestions');
+    
+    if(text.length < 2) { sug.style.display = 'none'; return; }
+
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1&accept-language=ru`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        sug.innerHTML = '';
+        data.forEach(item => {
+            const addr = item.address;
+            const street = addr.road || addr.pedestrian || addr.residential || "";
+            const house = addr.house_number || "";
+            const displayName = street ? `улица ${street}${house ? ', ' + house : ''}` : item.display_name.split(',')[0];
             
-            if(text.length < 1) { sug.style.display = 'none'; return; }
-
-            try {
-                // Поиск по OSM. Мы не ждем окончания ввода.
-                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1`;
-                const response = await fetch(url);
-                const data = await response.json();
-
-                sug.innerHTML = '';
-                if (data && data.length > 0) {
-                    data.forEach(item => {
-                        // Формируем: Улица, Дом (если есть)
-                        const street = item.address.road || item.address.pedestrian || item.name;
-                        const house = item.address.house_number || "";
-                        const displayName = `${street}${house ? ', ' + house : ''}`;
-                        
-                        sug.innerHTML += `
-                            <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
-                                📍 ${displayName}
-                            </div>`;
-                    });
-                    sug.style.display = 'block';
-                }
-            } catch (e) { console.error(e); }
-        }
-
+            sug.innerHTML += `
+                <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
+                    📍 ${displayName}
+                </div>`;
+        });
+        sug.style.display = 'block';
+    } catch (e) { console.error(e); }
+}
         // ПРИМЕНЕНИЕ ВЫБОРА
         function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
@@ -678,29 +674,20 @@ let isRouteFixed = false; // Блокировка пересчета после 
         }
 
 async function resolveCoordinatesToAddress(lat, lon) {
-            // Если маршрут уже построен, не трогаем адрес при движении карты!
-            if (isRouteFixed || isAutoPanning || isOrderProcessing) return;
-
-            if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
-
-            try {
-                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ru`);
-                const d = await r.json();
-                if (d && d.address) {
-                    const road = d.address.road || d.address.pedestrian || "";
-                    const house = d.address.house_number || "";
-                    
-                    if (road && house) {
-                        const exactAddress = `${road}, ${house}`.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = exactAddress;
-                        document.getElementById(activeInputContext + '-address').value = exactAddress;
-                        rebuildRouteLine();
-                        return;
-                    }
-                }
-            } catch(e) { 
-                console.error("Ошибка автоопределения:", e); 
-            }
+    if (isRouteFixed) return; // Не мешаем маршруту
+    
+    try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=ru`);
+        const d = await r.json();
+        if (d && d.address) {
+            const street = d.address.road || d.address.pedestrian || "";
+            const house = d.address.house_number || "";
+            const res = street ? `улица ${street}${house ? ', ' + house : ''}` : "Местоположение";
+            document.getElementById('pin-address-bubble').innerText = res;
+            document.getElementById(activeInputContext + '-address').value = res;
+        }
+    } catch(e) { console.error(e); }
+}
             
             // Если OSM не нашел точный дом, оставляем старое поведение (определение по словарю)
             document.getElementById('pin-address-bubble').innerText = "Точка на карте";
@@ -724,7 +711,37 @@ async function resolveCoordinatesToAddress(lat, lon) {
                     rawPrice = Math.round(rawPrice / 10) * 10;
                     
                     calculateFinalPriceDisplay();
-                }
+                    updateMapMarkers(); // <-- ДОБАВЬ ЭТУ СТРОЧКУ
+}
+                let startMarker, endMarker;
+
+function updateMapMarkers() {
+    if(startMarker) map.removeLayer(startMarker);
+    if(endMarker) map.removeLayer(endMarker);
+    
+    if (isRouteFixed) {
+        document.getElementById('map-interactive-pin').style.display = 'none';
+        const startIcon = L.divIcon({ html: '🚶', className: 'marker-start' });
+        const endIcon = L.divIcon({ html: '🏁', className: 'marker-end' });
+        startMarker = L.marker([geoLatA, geoLonA], {icon: startIcon}).addTo(map);
+        endMarker = L.marker([geoLatB, geoLonB], {icon: endIcon}).addTo(map);
+    } else {
+        document.getElementById('map-interactive-pin').style.display = 'block';
+    }
+}
+                
+    // Если маршрут построен, скрываем центральный маркер и рисуем иконки
+    if (isRouteFixed) {
+        document.getElementById('map-interactive-pin').style.display = 'none';
+        
+        // Создаем иконки (можно заменить на URL своих картинок)
+        const startIcon = L.divIcon({ html: '🚶', className: 'marker-start' });
+        const endIcon = L.divIcon({ html: '🏁', className: 'marker-end' });
+        
+        L.marker([geoLatA, geoLonA], {icon: startIcon}).addTo(map);
+        L.marker([geoLatB, geoLonB], {icon: endIcon}).addTo(map);
+    } else {
+        document.getElementById('map-interactive-pin').style.display = 'block';
             } catch(e){}
         }
 
@@ -1129,6 +1146,23 @@ async function resolveCoordinatesToAddress(lat, lon) {
         }
 
         triggerGPS();
+
+        document.getElementById('from-address').addEventListener('focus', () => {
+    isRouteFixed = false;
+    if(routePolyline) map.removeLayer(routePolyline);
+    if(startMarker) map.removeLayer(startMarker);
+    if(endMarker) map.removeLayer(endMarker);
+    document.getElementById('map-interactive-pin').style.display = 'block';
+});
+
+document.getElementById('to-address').addEventListener('focus', () => {
+    isRouteFixed = false;
+    if(routePolyline) map.removeLayer(routePolyline);
+    if(startMarker) map.removeLayer(startMarker);
+    if(endMarker) map.removeLayer(endMarker);
+    document.getElementById('map-interactive-pin').style.display = 'block';
+});
+        
     </script>
 </body>
 </html>
