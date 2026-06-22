@@ -438,11 +438,11 @@
         </div>
     </div>
 
-    let isRouteFixed = false;
-    let startMarker = null;
-    let endMarker = null;
-    
     <script>
+        let isRouteFixed = false;
+        let startMarker = null;
+        let endMarker = null;
+
         const tg = window.Telegram.WebApp;
         tg.expand();
         if(tg.enableClosingConfirmation) tg.enableClosingConfirmation();
@@ -495,7 +495,7 @@
 
         let currentLocale = localStorage.getItem('batz_lang') || 'ru';
 
-        // 2. БАЗА ДАННЫХ АВТОМОБИЛЕЙ (16 марок и каскадные модели)
+        // 2. БАЗА ДАННЫХ АВТОМОБИЛЕЙ
         const carAutomotiveDatabase = {
             "Audi": ["100", "80", "A4", "A6", "A8", "Q5", "Q7"],
             "BMW": ["3-Series", "5-Series", "7-Series", "X3", "X5", "X6"],
@@ -514,36 +514,6 @@
             "Mitsubishi": ["Lancer", "Galant", "Pajero", "Outander", "Carisma"],
             "Renault": ["Logan", "Duster", "Sandero", "Megane", "Fluence"]
         };
-
-        // 3. ГЕОИНФОРМАЦИОННАЯ КАРТА ШАРБАКТЫ (Точные фиксированные координаты)
-        const sharbaktyGeoDictionary = [
-            { name: "Районная Больница", lat: 52.49310, lon: 78.15810, type: "poi" },
-            { name: "Казпочта (Почта)", lat: 52.48850, lon: 78.16320, type: "poi" },
-            { name: "Халык Банк (Halyk Bank)", lat: 52.48910, lon: 78.16200, type: "poi" },
-            { name: "Районный Акимат", lat: 52.48750, lon: 78.16450, type: "poi" },
-            { name: "ЦОН", lat: 52.49050, lon: 78.15950, type: "poi" },
-            { name: "Школа №1", lat: 52.49400, lon: 78.16400, type: "poi" },
-            { name: "Школа №2", lat: 52.48450, lon: 78.15500, type: "poi" },
-            { name: "Автостанция Шарбакты", lat: 52.48650, lon: 78.15400, type: "poi" },
-            { name: "Парк Победы", lat: 52.48900, lon: 78.16000, type: "poi" },
-            { name: "Супермаркет Сарыарка", lat: 52.49000, lon: 78.16250, type: "poi" },
-            { name: "ул. Матросова 1", lat: 52.49100, lon: 78.16010, type: "street" },
-            { name: "ул. Матросова 5", lat: 52.49130, lon: 78.16050, type: "street" },
-            { name: "ул. Матросова 12", lat: 52.49220, lon: 78.16180, type: "street" },
-            { name: "ул. Матросова 25", lat: 52.49350, lon: 78.16330, type: "street" },
-            { name: "ул. Ленина 2", lat: 52.48700, lon: 78.16100, type: "street" },
-            { name: "ул. Ленина 10", lat: 52.48800, lon: 78.16300, type: "street" },
-            { name: "ул. Ленина 15", lat: 52.48840, lon: 78.16420, type: "street" },
-            { name: "ул. Ленина 45", lat: 52.49000, lon: 78.16800, type: "street" },
-            { name: "ул. Мира 4", lat: 52.48950, lon: 78.15700, type: "street" },
-            { name: "ул. Мира 18", lat: 52.49120, lon: 78.15900, type: "street" },
-            { name: "ул. Советов 10", lat: 52.48500, lon: 78.16300, type: "street" },
-            { name: "ул. Советов 24", lat: 52.48620, lon: 78.16600, type: "street" },
-            { name: "ул. Чайковского 12", lat: 52.48300, lon: 78.15200, type: "street" },
-            { name: "ул. Чайковского 40", lat: 52.48550, lon: 78.15550, type: "street" },
-            { name: "ул. Гагарина 5", lat: 52.49500, lon: 78.15800, type: "street" },
-            { name: "ул. Гагарина 22", lat: 52.49750, lon: 78.16100, type: "street" }
-        ];
 
         // 4. СОСТОЯНИЯ И СЕРВЕРНЫЕ КОНФИГУРАЦИИ
         const socket = io('https://batz-taxi-backend.onrender.com');
@@ -569,10 +539,8 @@
         let cfgPromoCode = localStorage.getItem('cfg_promo') || "BATZ2026";
         let cfgPromoDiscount = Number(localStorage.getItem('cfg_discount')) || 10;
 
-        // Таймеры и счетчики
         let waitSeconds = 0, waitInterval = null, isPaidWait = false, paidAccumulated = 0;
 
-        // Локальное мокание базы данных для автономии
         let mockDriversDatabase = JSON.parse(localStorage.getItem('mock_drivers')) || [];
         let mockRidesHistoryLog = JSON.parse(localStorage.getItem('mock_rides')) || [
             { date: "21.06.2026 14:10", from: "ул. Матросова 12", to: "Районная Больница", cost: 250, driver: "Серик К.", status: "Успешно" }
@@ -601,7 +569,6 @@
                 if(i18n[lng][key]) el.innerText = i18n[lng][key];
             });
 
-            // Коррекция плейсхолдеров
             document.getElementById('from-address').placeholder = lng==='ru'?'Откуда едем?':lng==='kz'?'Қайдан жүреміз?':'Pickup point?';
             document.getElementById('to-address').placeholder = lng==='ru'?'Куда едем?':lng==='kz'?'Қайда жүреміз?':'Destination?';
             document.getElementById('cash-change-from').placeholder = lng==='ru'?'С какой суммы подготовить сдачу?':lng==='kz'?'Қай сомадан қайтарым керек?':'Change from what sum?';
@@ -623,39 +590,37 @@
             document.getElementById('to-address').classList.remove('active-focus');
             document.getElementById(ctx + '-address').classList.add('active-focus');
         }
-let isRouteFixed = false;
-let startMarker = null;
-let endMarker = null;
 
-        // ЖИВОЙ ПОИСК (срабатывает на каждый символ)
-async function handleManualSearchInput(ctx) {
-    if(isOrderProcessing && isRouteFixed) return;
-    activeInputContext = ctx;
-    const text = document.getElementById(ctx + '-address').value.trim();
-    const sug = document.getElementById(ctx + '-suggestions');
-    
-    if(text.length < 2) { sug.style.display = 'none'; return; }
-
-    try {
-        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1&accept-language=ru`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        sug.innerHTML = '';
-        data.forEach(item => {
-            const addr = item.address;
-            const street = addr.road || addr.pedestrian || addr.residential || "";
-            const house = addr.house_number || "";
-            const displayName = street ? `улица ${street}${house ? ', ' + house : ''}` : item.display_name.split(',')[0];
+        // ЖИВОЙ ПОИСК
+        async function handleManualSearchInput(ctx) {
+            if(isOrderProcessing && isRouteFixed) return;
+            activeInputContext = ctx;
+            const text = document.getElementById(ctx + '-address').value.trim();
+            const sug = document.getElementById(ctx + '-suggestions');
             
-            sug.innerHTML += `
-                <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
-                    📍 ${displayName}
-                </div>`;
-        });
-        sug.style.display = 'block';
-    } catch (e) { console.error(e); }
-}
+            if(text.length < 2) { sug.style.display = 'none'; return; }
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1&accept-language=ru`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                sug.innerHTML = '';
+                data.forEach(item => {
+                    const addr = item.address;
+                    const street = addr.road || addr.pedestrian || addr.residential || "";
+                    const house = addr.house_number || "";
+                    const displayName = street ? `улица ${street}${house ? ', ' + house : ''}` : item.display_name.split(',')[0];
+                    
+                    sug.innerHTML += `
+                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
+                            📍 ${displayName}
+                        </div>`;
+                });
+                sug.style.display = 'block';
+            } catch (e) { console.error(e); }
+        }
+
         // ПРИМЕНЕНИЕ ВЫБОРА
         function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
@@ -670,7 +635,6 @@ async function handleManualSearchInput(ctx) {
             map.setView([lat, lon], 17);
             document.getElementById('pin-address-bubble').innerText = name;
             
-            // Если обе точки установлены — фиксируем маршрут
             if (geoLatA && geoLatB) {
                 isRouteFixed = true; 
                 rebuildRouteLine();
@@ -679,32 +643,29 @@ async function handleManualSearchInput(ctx) {
             setTimeout(() => { isAutoPanning = false; }, 800);
         }
 
-async function resolveCoordinatesToAddress(lat, lon) {
-    if (isRouteFixed) return; // Не мешаем маршруту
-    
-    try {
-        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=ru`);
-        const d = await r.json();
-        if (d && d.address) {
-            const street = d.address.road || d.address.pedestrian || "";
-            const house = d.address.house_number || "";
-            const res = street ? `улица ${street}${house ? ', ' + house : ''}` : "Местоположение";
-            document.getElementById('pin-address-bubble').innerText = res;
-            document.getElementById(activeInputContext + '-address').value = res;
-        }
-    } catch(e) { console.error(e); }
-}
+        async function resolveCoordinatesToAddress(lat, lon) {
+            if (isRouteFixed || typeof isAutoPanning !== 'undefined' && isAutoPanning) return;
             
-            // Если OSM не нашел точный дом, оставляем старое поведение (определение по словарю)
+            if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
+
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=ru`);
+                const d = await r.json();
+                if (d && d.address) {
+                    const street = d.address.road || d.address.pedestrian || "";
+                    const house = d.address.house_number || "";
+                    if(street) {
+                        const res = `улица ${street}${house ? ', ' + house : ''}`;
+                        document.getElementById('pin-address-bubble').innerText = res;
+                        document.getElementById(activeInputContext + '-address').value = res;
+                        return;
+                    }
+                }
+            } catch(e) { console.error(e); }
+            
             document.getElementById('pin-address-bubble').innerText = "Точка на карте";
-            rebuildRouteLine();
         }
 
-// Глобальные переменные для маркеров (убедись, что они есть в начале файла)
-        let startMarker = null;
-        let endMarker = null;
-
-        // 1. Функция удаления маркеров
         function clearRouteMarkers() {
             if(startMarker) map.removeLayer(startMarker);
             if(endMarker) map.removeLayer(endMarker);
@@ -712,9 +673,8 @@ async function resolveCoordinatesToAddress(lat, lon) {
             endMarker = null;
         }
 
-        // 2. Функция обновления маркеров (Человечек и Финиш)
         function updateMapMarkers() {
-            clearRouteMarkers(); // Сначала удаляем старые
+            clearRouteMarkers();
             if (isRouteFixed) {
                 document.getElementById('map-interactive-pin').style.display = 'none';
                 const startIcon = L.divIcon({ html: '🚶', className: 'marker-start', iconSize: [25, 25] });
@@ -727,7 +687,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             }
         }
 
-        // 3. Основная функция построения маршрута
         async function rebuildRouteLine() {
             if(!geoLatB || !geoLonB || isOrderProcessing) return;
             try {
@@ -745,8 +704,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
                     rawPrice = Math.round(rawPrice / 10) * 10;
                     
                     calculateFinalPriceDisplay();
-                    
-                    // Вызываем обновление иконок после построения линии
                     updateMapMarkers();
                 }
             } catch(e) { console.error("Ошибка маршрута:", e); }
@@ -782,7 +739,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             document.getElementById('change-input-block').style.display = m==='cash'?'block':'none';
         }
 
-        // Автоформатирование масок ввода
         document.getElementById('d-car-num').addEventListener('input', function(e) {
             let v = e.target.value.replace(/\s+/g, '').toUpperCase();
             if(v.length > 3 && v.length <= 6) v = v.slice(0,3) + ' ' + v.slice(3);
@@ -799,7 +755,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '') + (x[4] ? '-' + x[4] : '');
         });
 
-        // Живой фильтр Марка / Модель машин
         function handleBrandAutocomplete() {
             const input = document.getElementById('d-car-brand-input');
             const val = input.value.trim().toLowerCase();
@@ -838,7 +793,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             document.getElementById('model-suggestions').style.display = 'none';
         }
 
-        // Логика Ролей и Профиля
         function updateProfileHeaderUI() {
             if(myProfile) {
                 document.getElementById('sb-name').innerText = myProfile.name;
@@ -881,7 +835,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             document.getElementById(id).classList.add('active');
         }
 
-        // Жизненный цикл сессии
         if(myProfile) {
             updateProfileHeaderUI();
             changeSystemLanguage(currentLocale);
@@ -923,7 +876,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             switchVisiblePanel('panel-driver-pending');
         }
 
-        // АДМИНИСТРАТИВНОЕ КРЫЛО (Полная модерация)
         function switchAdminSubTab(sub) {
             document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('at-' + sub).classList.add('active');
@@ -1005,13 +957,11 @@ async function resolveCoordinatesToAddress(lat, lon) {
             alert("Новая тарифная сетка применена!");
         }
 
-        // РАДАР И ЦИКЛ ПОЕЗДКИ
         function initiateOrderWorkflow() {
             if(!geoLatB) { alert(currentLocale==='ru'?'Укажите адрес прибытия!':'Пунктті таңдаңыз!'); return; }
             isOrderProcessing = true;
             switchVisiblePanel('panel-passenger-search');
             
-            // Имитация пассивного ожидания/очереди и автоматического принятия
             setTimeout(() => {
                 if(myProfile?.isDriverApproved) {
                     alert(currentLocale==='ru'?'Заказ принят! Водитель заканчивает предыдущий заказ и направляется к вам.':'Тапсырыс қабылданды! Жүргізуші алдыңғы сапарды аяқтап, сізге қарай шығады.');
@@ -1029,7 +979,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
             
             liveDriverMarker = L.marker([geoLatA + 0.004, geoLonA + 0.004], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/3448/3448327.png', iconSize:[32,32]})}).addTo(map);
 
-            // Анимация приближения маркера
             let steps = 0;
             let interval = setInterval(() => {
                 steps++;
@@ -1049,7 +998,7 @@ async function resolveCoordinatesToAddress(lat, lon) {
             const banner = document.getElementById('wait-timer-block');
             banner.style.display = 'block';
             
-            waitSeconds = 180; // 3 минуты бесплатного ожидания
+            waitSeconds = 180; 
             isPaidWait = false;
             paidAccumulated = 0;
 
@@ -1069,7 +1018,6 @@ async function resolveCoordinatesToAddress(lat, lon) {
                 }
             }, 1000);
 
-            // Кнопка переключения для демонстрации (симуляция посадки пассажира через 8 сек)
             setTimeout(() => {
                 clearInterval(waitInterval);
                 banner.style.display = 'none';
@@ -1079,7 +1027,7 @@ async function resolveCoordinatesToAddress(lat, lon) {
 
         function startActiveTripTransit() {
             document.getElementById('track-main-status').innerText = currentLocale==='ru'?'В пути к точке назначения':'Поездка барысында';
-            map.dragging.disable(); // Блокировка карты при езде
+            map.dragging.disable(); 
 
             let steps = 0;
             let interval = setInterval(() => {
@@ -1154,13 +1102,19 @@ async function resolveCoordinatesToAddress(lat, lon) {
 
         triggerGPS();
 
-document.getElementById('to-address').addEventListener('focus', () => {
-    isRouteFixed = false;
-    if(routePolyline) map.removeLayer(routePolyline);
-    if(startMarker) map.removeLayer(startMarker);
-    if(endMarker) map.removeLayer(endMarker);
-    document.getElementById('map-interactive-pin').style.display = 'block';
-});
+        document.getElementById('from-address').addEventListener('focus', () => {
+            isRouteFixed = false;
+            if(routePolyline) map.removeLayer(routePolyline);
+            clearRouteMarkers();
+            document.getElementById('map-interactive-pin').style.display = 'block';
+        });
+
+        document.getElementById('to-address').addEventListener('focus', () => {
+            isRouteFixed = false;
+            if(routePolyline) map.removeLayer(routePolyline);
+            clearRouteMarkers();
+            document.getElementById('map-interactive-pin').style.display = 'block';
+        });
         
     </script>
 </body>
