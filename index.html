@@ -19,6 +19,35 @@
             --border: #444444;
             --danger: #dc3545;
             --success: #28a745;
+
+            .suggestions-box {
+    position: absolute;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    width: calc(100% - 32px);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    margin-top: 4px;
+}
+
+.suggestion-row {
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 14px;
+    border-bottom: 1px solid #2d2d2d;
+    cursor: pointer;
+}
+
+.suggestion-row:last-child {
+    border-bottom: none;
+}
+
+.suggestion-row:active {
+    background: #2d2d2d;
+}
         }
 
         body, html { 
@@ -612,112 +641,139 @@
             sh.style.display = sh.style.display === 'block' ? 'none' : 'block';
         }
 
+// ДВА МАРКЕРА ДЛЯ СТРОГОЙ ФИКСАЦИИ ТОЧЕК А И Б
+        let markerA = null;
+        let markerB = null;
+
+        // ФОКУС ИНПУТА — Теперь просто переключает контекст ввода без перемещения карты
         function focusAddressInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
+            
             document.getElementById('from-address').classList.remove('active-focus');
             document.getElementById('to-address').classList.remove('active-focus');
             document.getElementById(ctx + '-address').classList.add('active-focus');
         }
 
-        // Ручной ввод с живыми подсказками без координатных смещений
-        function handleManualSearchInput(ctx) {
+        // ЖИВОЙ ПОИСК АДРЕСОВ С ФИЛЬТРАЦИЕЙ ПО ШАРБАКТЫ
+        async function handleManualSearchInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
-            const text = document.getElementById(ctx + '-address').value.toLowerCase().trim();
+            const text = document.getElementById(ctx + '-address').value.trim();
             const sug = document.getElementById(ctx + '-suggestions');
             
-            if(text.length < 1) { sug.style.display = 'none'; return; }
-
-            const res = sharbaktyGeoDictionary.filter(i => i.name.toLowerCase().includes(text));
-            sug.innerHTML = '';
-
-            if(res.length === 0) {
-                sug.innerHTML = `<div class="suggestion-row" style="color:#666;">${currentLocale==='ru'?'Адрес не найден':'Мекенжай табылмады'}</div>`;
-            } else {
-                res.forEach(item => {
-                    sug.innerHTML += `
-                        <div class="suggestion-row" onclick="applySelectedAddressTarget('${item.name}', ${item.lat}, ${item.lon})">
-                            <span>${item.type === 'poi' ? '🏢' : '📍'}</span>
-                            <div>${item.name}</div>
-                        </div>`;
-                });
+            // Если поле очистили — скрываем подсказки
+            if(text.length < 1) { 
+                sug.innerHTML = '';
+                sug.style.display = 'none'; 
+                return; 
             }
-            sug.style.display = 'block';
+
+            try {
+                // Формируем строгий запрос: ищем внутри Казахстана, приоритет на Шарбакты
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent('Шарбакты ' + text)}&countrycodes=kz&limit=6&addressdetails=1&accept-language=ru`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                sug.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        const addr = item.address;
+                        
+                        // Извлекаем только улицу и дом
+                        const street = addr.road || addr.pedestrian || addr.residential || addr.suburb || "";
+                        const house = addr.house_number || "";
+                        
+                        let formattedAddress = "";
+                        
+                        if (street) {
+                            // Форматируем строго по ТЗ: "улица [Название], [Номер дома]"
+                            formattedAddress = `улица ${street}${house ? ', ' + house : ''}`;
+                        } else {
+                            // Если улицы в объекте OSM нет (например, это больница, парк или магазин), берем имя самого объекта
+                            formattedAddress = item.namedetails?.name || item.name || item.display_name.split(',')[0];
+                        }
+
+                        // Убираем возможные дубликаты слов вроде "улица улица"
+                        formattedAddress = formattedAddress.replace(/улица\s+улица/gi, 'улица');
+
+                        sug.innerHTML += `
+                            <div class="suggestion-row" onclick="applySelectedAddressTarget('${ctx}', '${formattedAddress.replace(/'/g, "\\'")}', ${item.lat}, ${item.lon})">
+                                <span style="margin-right: 8px;">📍</span> ${formattedAddress}
+                            </div>`;
+                    });
+                    sug.style.display = 'block';
+                } else {
+                    sug.innerHTML = `<div style="padding: 12px; color: #666; font-size: 13px;">Адрес в Шарбакты не найден</div>`;
+                    sug.style.display = 'block';
+                }
+            } catch (e) { 
+                console.error("Ошибка автокомплита Nominatim:", e); 
+            }
         }
 
-        function applySelectedAddressTarget(name, lat, lon) {
-            const ctx = activeInputContext;
-            document.getElementById(ctx + '-address').value = name;
+        // КЛИК ПО ПОДСКАЗКЕ — СТАВИТ МАРКЕР ТОЧНО НА АДРЕС И ДВИГАЕТ КАРТУ
+        function applySelectedAddressTarget(ctx, formattedName, lat, lon) {
+            // 1. Записываем текст в инпут и закрываем подсказки
+            document.getElementById(ctx + '-address').value = formattedName;
             document.getElementById(ctx + '-suggestions').style.display = 'none';
 
-            if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
+            // 2. Сохраняем глобальные координаты точек
+            if(ctx === 'from') { 
+                geoLatA = lat; 
+                geoLonA = lon; 
+                
+                // Ставим или перемещаем Маркер А (Зеленый или стандартный с буквой А)
+                if(markerA) {
+                    markerA.setLatLng([lat, lon]);
+                } else {
+                    markerA = L.marker([lat, lon], {
+                        icon: L.divIcon({ html: '🅰️', className: 'marker-batz-point', iconSize: [24, 24], iconAnchor: [12, 12] })
+                    }).addTo(map);
+                }
+            } else { 
+                geoLatB = lat; 
+                geoLonB = lon; 
+                
+                // Ставим или перемещаем Маркер Б
+                if(markerB) {
+                    markerB.setLatLng([lat, lon]);
+                } else {
+                    markerB = L.marker([lat, lon], {
+                        icon: L.divIcon({ html: '🅱️', className: 'marker-batz-point', iconSize: [24, 24], iconAnchor: [12, 12] })
+                    }).addTo(map);
+                }
+            }
 
+            // 3. Плавно перемещаем камеру на выбранную точку
             map.panTo([lat, lon]);
-            document.getElementById('pin-address-bubble').innerText = name;
-            rebuildRouteLine();
+
+            // 4. Если теперь заполнены обе точки, строим маршрутную линию и считаем цену
+            if(geoLatA && geoLatB && document.getElementById('to-address').value !== '') {
+                rebuildRouteLine();
+            }
         }
 
+        // ОБРАТНЫЙ ГЕОКОДИНГ ПРИ ПЕРЕМЕЩЕНИИ КАРТЫ
+        // Полностью отключаем автоматическое затирание полей при движении карты, 
+        // чтобы оно не ломало ручной ввод адресов. Оставляем только обновление баббла, если это нужно.
         async function resolveCoordinatesToAddress(lat, lon) {
-            if(isOrderProcessing) return;
-            if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
-
-            // 1. Сначала пытаемся получить максимальную точность (Улица + Дом) через международный сервис OpenStreetMap
+            // Логика перемещения карты больше НЕ перезаписывает текстовые инпуты автоматически,
+            // предотвращая зацикливание маршрута "из себя в себя".
             try {
-                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ru`);
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=ru`);
                 const d = await r.json();
                 if (d && d.address) {
-                    const road = d.address.road || d.address.pedestrian || "";
+                    const street = d.address.road || d.address.pedestrian || "";
                     const house = d.address.house_number || "";
-                    
-                    // Если карта знает точную улицу и дом (например, Матросова, 8) — сразу пишем их
-                    if (road && house) {
-                        const exactAddress = `${road}, ${house}`.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = exactAddress;
-                        document.getElementById(activeInputContext + '-address').value = exactAddress;
-                        rebuildRouteLine();
-                        return; // Успешно вышли, локальная база не будет перебивать адрес
+                    if(street) {
+                        document.getElementById('pin-address-bubble').innerText = `улица ${street}${house ? ', ' + house : ''}`;
+                        return;
                     }
                 }
-            } catch(e) {
-                console.error("Запрос к Nominatim не удался или превышен лимит, используем резерв");
-            }
-
-            // 2. Если точный дом на карте не размечен, ищем совпадение в твоей локальной базе Шарбакты
-            let closest = null, minD = Infinity;
-            sharbaktyGeoDictionary.forEach(p => {
-                let d = Math.pow(p.lat - lat, 2) + Math.pow(p.lon - lon, 2);
-                if(d < minD) { minD = d; closest = p; }
-            });
-
-            // ИСПРАВЛЕНО: Уменьшили радиус привязки до ~25-30 метров (0.0000001 вместо 0.00002).
-            // Теперь маркер привяжется к "Больнице" или "Акимату" только если поставить его вплотную к ним.
-            if(closest && minD < 0.0000001) {
-                document.getElementById('pin-address-bubble').innerText = closest.name;
-                document.getElementById(activeInputContext + '-address').value = closest.name;
-            } else {
-                // 3. Если и рядом с объектами базы ничего нет, берем резервный Photon, но теперь Обязательно с номером дома
-                try {
-                    const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon}&lat=${lat}`);
-                    const d = await r.json();
-                    if(d.features && d.features.length > 0) {
-                        const props = d.features[0].properties;
-                        let st = props.street || props.name || "Точка на карте";
-                        
-                        // ИСПРАВЛЕНО: Если Photon вернул и улицу, и номер дома, склеиваем их вместе
-                        if (props.street && props.housenumber) {
-                            st = `${props.street}, ${props.housenumber}`;
-                        }
-                        
-                        st = st.replace(/Шарбахты/g, "").trim();
-                        document.getElementById('pin-address-bubble').innerText = st;
-                        document.getElementById(activeInputContext + '-address').value = st;
-                    }
-                } catch(e) {
-                    document.getElementById('pin-address-bubble').innerText = "Точка на карте";
-                }
-            }
-            rebuildRouteLine();
+            } catch(e) { console.error(e); }
+            document.getElementById('pin-address-bubble').innerText = "Точка на карте";
         }
 
         async function rebuildRouteLine() {
