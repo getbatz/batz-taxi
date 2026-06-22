@@ -81,7 +81,7 @@
         }
         .user-meta { overflow: hidden; }
         .user-name { font-size: 16px; font-weight: bold; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .user-status { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
+        .user-status { font-size: 11px; color: var(--accent); text-transform: uppercase; ter-spacing: 0.5px; font-weight: bold; }
         
         .sidebar-menu { flex: 1; overflow-y: auto; padding: 15px 10px; }
         .menu-item {
@@ -113,8 +113,8 @@
 
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        .sheet-title { font-size: 19px; font-weight: 900; color: var(--accent); text-align: center; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .sheet-sub { font-size: 11px; text-align: center; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sheet-title { font-size: 19px; font-weight: 900; color: var(--accent); text-align: center; margin-bottom: 3px; text-transform: uppercase; ter-spacing: 0.5px; }
+        .sheet-sub { font-size: 11px; text-align: center; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; ter-spacing: 0.5px; }
 
         /* Поля ввода */
         .input-box { margin-bottom: 10px; position: relative; }
@@ -156,7 +156,7 @@
         }
         .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-        .btn-main { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 14px; font-weight: bold; font-size: 15px; color: #000; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-main { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 14px; font-weight: bold; font-size: 15px; color: #000; cursor: pointer; text-transform: uppercase; ter-spacing: 0.5px; }
         .btn-main:active { transform: scale(0.98); }
         
         .btn-sub { width: 100%; padding: 10px; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; cursor: pointer; color: #fff; margin-top: 6px; text-transform: uppercase; display: block; text-align: center; box-sizing: border-box; }
@@ -326,7 +326,7 @@
         <div style="display: flex; gap: 8px;">
             <div class="input-box" style="flex:1; position:relative;">
                 <label data-i18n="dLabelBrand">Марка авто</label>
-                <input type="text" id="d-car-brand-input" placeholder="Например: Audi" oninput="handleBrandAutocomplete()">
+                <input type="text" id="d-car-brand-input" placeholder="Например: Audi" oninput="handleBrandAutocompe()">
                 <div id="brand-suggestions" class="search-suggestions"></div>
             </div>
             <div class="input-box" style="flex:1; position:relative;">
@@ -438,6 +438,10 @@
         </div>
     </div>
 
+    let isRouteFixed = false;
+    let startMarker = null;
+    let endMarker = null;
+    
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -619,7 +623,9 @@
             document.getElementById('to-address').classList.remove('active-focus');
             document.getElementById(ctx + '-address').classList.add('active-focus');
         }
-let isRouteFixed = false; // Блокировка пересчета после построения маршрута
+let isRouteFixed = false;
+let startMarker = null;
+let endMarker = null;
 
         // ЖИВОЙ ПОИСК (срабатывает на каждый символ)
 async function handleManualSearchInput(ctx) {
@@ -694,6 +700,34 @@ async function resolveCoordinatesToAddress(lat, lon) {
             rebuildRouteLine();
         }
 
+// Глобальные переменные для маркеров (убедись, что они есть в начале файла)
+        let startMarker = null;
+        let endMarker = null;
+
+        // 1. Функция удаления маркеров
+        function clearRouteMarkers() {
+            if(startMarker) map.removeLayer(startMarker);
+            if(endMarker) map.removeLayer(endMarker);
+            startMarker = null;
+            endMarker = null;
+        }
+
+        // 2. Функция обновления маркеров (Человечек и Финиш)
+        function updateMapMarkers() {
+            clearRouteMarkers(); // Сначала удаляем старые
+            if (isRouteFixed) {
+                document.getElementById('map-interactive-pin').style.display = 'none';
+                const startIcon = L.divIcon({ html: '🚶', className: 'marker-start', iconSize: [25, 25] });
+                const endIcon = L.divIcon({ html: '🏁', className: 'marker-end', iconSize: [25, 25] });
+                
+                startMarker = L.marker([geoLatA, geoLonA], {icon: startIcon}).addTo(map);
+                endMarker = L.marker([geoLatB, geoLonB], {icon: endIcon}).addTo(map);
+            } else {
+                document.getElementById('map-interactive-pin').style.display = 'block';
+            }
+        }
+
+        // 3. Основная функция построения маршрута
         async function rebuildRouteLine() {
             if(!geoLatB || !geoLonB || isOrderProcessing) return;
             try {
@@ -711,40 +745,13 @@ async function resolveCoordinatesToAddress(lat, lon) {
                     rawPrice = Math.round(rawPrice / 10) * 10;
                     
                     calculateFinalPriceDisplay();
-                    updateMapMarkers(); // <-- ДОБАВЬ ЭТУ СТРОЧКУ
-}
-                let startMarker, endMarker;
-
-function updateMapMarkers() {
-    if(startMarker) map.removeLayer(startMarker);
-    if(endMarker) map.removeLayer(endMarker);
-    
-    if (isRouteFixed) {
-        document.getElementById('map-interactive-pin').style.display = 'none';
-        const startIcon = L.divIcon({ html: '🚶', className: 'marker-start' });
-        const endIcon = L.divIcon({ html: '🏁', className: 'marker-end' });
-        startMarker = L.marker([geoLatA, geoLonA], {icon: startIcon}).addTo(map);
-        endMarker = L.marker([geoLatB, geoLonB], {icon: endIcon}).addTo(map);
-    } else {
-        document.getElementById('map-interactive-pin').style.display = 'block';
-    }
-}
-                
-    // Если маршрут построен, скрываем центральный маркер и рисуем иконки
-    if (isRouteFixed) {
-        document.getElementById('map-interactive-pin').style.display = 'none';
-        
-        // Создаем иконки (можно заменить на URL своих картинок)
-        const startIcon = L.divIcon({ html: '🚶', className: 'marker-start' });
-        const endIcon = L.divIcon({ html: '🏁', className: 'marker-end' });
-        
-        L.marker([geoLatA, geoLonA], {icon: startIcon}).addTo(map);
-        L.marker([geoLatB, geoLonB], {icon: endIcon}).addTo(map);
-    } else {
-        document.getElementById('map-interactive-pin').style.display = 'block';
-            } catch(e){}
+                    
+                    // Вызываем обновление иконок после построения линии
+                    updateMapMarkers();
+                }
+            } catch(e) { console.error("Ошибка маршрута:", e); }
         }
-
+        
         function calculateFinalPriceDisplay() {
             finalPrice = rawPrice;
             if(isPromoApplied) {
@@ -1146,14 +1153,6 @@ function updateMapMarkers() {
         }
 
         triggerGPS();
-
-        document.getElementById('from-address').addEventListener('focus', () => {
-    isRouteFixed = false;
-    if(routePolyline) map.removeLayer(routePolyline);
-    if(startMarker) map.removeLayer(startMarker);
-    if(endMarker) map.removeLayer(endMarker);
-    document.getElementById('map-interactive-pin').style.display = 'block';
-});
 
 document.getElementById('to-address').addEventListener('focus', () => {
     isRouteFixed = false;
