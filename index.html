@@ -619,71 +619,67 @@
             document.getElementById('to-address').classList.remove('active-focus');
             document.getElementById(ctx + '-address').classList.add('active-focus');
         }
-let searchTimer = null; // Таймер для предотвращения спама запросами
+let isRouteFixed = false; // Блокировка пересчета после построения маршрута
 
+        // ЖИВОЙ ПОИСК (срабатывает на каждый символ)
         async function handleManualSearchInput(ctx) {
             if(isOrderProcessing) return;
             activeInputContext = ctx;
             const text = document.getElementById(ctx + '-address').value.trim();
             const sug = document.getElementById(ctx + '-suggestions');
             
-            // Очищаем предыдущий таймер
-            clearTimeout(searchTimer);
-            
-            if(text.length < 3) { sug.style.display = 'none'; return; }
+            if(text.length < 1) { sug.style.display = 'none'; return; }
 
-            // Задержка 500мс перед отправкой запроса (чтобы не превысить лимиты OSM)
-            searchTimer = setTimeout(async () => {
-                try {
-                    // Поиск через Nominatim с ограничением по Щербакты
-                    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1`;
-                    const response = await fetch(url);
-                    const data = await response.json();
+            try {
+                // Поиск по OSM. Мы не ждем окончания ввода.
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text + ', Щербакты')}&countrycodes=kz&limit=5&addressdetails=1`;
+                const response = await fetch(url);
+                const data = await response.json();
 
-                    sug.innerHTML = '';
-                    if (data && data.length > 0) {
-                        data.forEach(item => {
-                            // Формируем красивое название из данных OSM
-                            const displayName = item.display_name.split(',').slice(0, 2).join(',');
-                            sug.innerHTML += `
-                                <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
-                                    📍 ${displayName}
-                                </div>`;
-                        });
-                        sug.style.display = 'block';
-                    } else {
-                        sug.style.display = 'none';
-                    }
-                } catch (e) {
-                    console.error("Ошибка Nominatim:", e);
+                sug.innerHTML = '';
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        // Формируем: Улица, Дом (если есть)
+                        const street = item.address.road || item.address.pedestrian || item.name;
+                        const house = item.address.house_number || "";
+                        const displayName = `${street}${house ? ', ' + house : ''}`;
+                        
+                        sug.innerHTML += `
+                            <div class="suggestion-row" onclick="applySelectedAddressTarget('${displayName.replace(/'/g, "")}', ${item.lat}, ${item.lon})">
+                                📍 ${displayName}
+                            </div>`;
+                    });
+                    sug.style.display = 'block';
                 }
-            }, 500);
+            } catch (e) { console.error(e); }
         }
 
+        // ПРИМЕНЕНИЕ ВЫБОРА
         function applySelectedAddressTarget(name, lat, lon) {
             const ctx = activeInputContext;
-            isAutoPanning = true;
+            isAutoPanning = true; 
 
             document.getElementById(ctx + '-address').value = name;
             document.getElementById(ctx + '-suggestions').style.display = 'none';
 
-            // Обновляем координаты
-            if(ctx === 'from') { geoLatA = parseFloat(lat); geoLonA = parseFloat(lon); } 
-            else { geoLatB = parseFloat(lat); geoLonB = parseFloat(lon); }
+            if(ctx === 'from') { geoLatA = lat; geoLonA = lon; } 
+            else { geoLatB = lat; geoLonB = lon; }
 
-            // Прыжок карты точно в координаты OSM
-            map.setView([parseFloat(lat), parseFloat(lon)], 17);
+            map.setView([lat, lon], 17);
             document.getElementById('pin-address-bubble').innerText = name;
             
-            if (typeof rebuildRouteLine === 'function') rebuildRouteLine();
+            // Если обе точки установлены — фиксируем маршрут
+            if (geoLatA && geoLatB) {
+                isRouteFixed = true; 
+                rebuildRouteLine();
+            }
 
-            setTimeout(() => { isAutoPanning = false; }, 1000);
+            setTimeout(() => { isAutoPanning = false; }, 800);
         }
 
 async function resolveCoordinatesToAddress(lat, lon) {
-            // Защита: если идет ручной выбор адреса, не перезаписываем его
-            if (typeof isAutoPanning !== 'undefined' && isAutoPanning) return;
-            if (isOrderProcessing) return;
+            // Если маршрут уже построен, не трогаем адрес при движении карты!
+            if (isRouteFixed || isAutoPanning || isOrderProcessing) return;
 
             if(activeInputContext === 'from') { geoLatA = lat; geoLonA = lon; } else { geoLatB = lat; geoLonB = lon; }
 
